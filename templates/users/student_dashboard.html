@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Welcome, {{ user.get_full_name }}</h2>
+                    <div class="progress mb-4">
+                        <div class="progress-bar" role="progressbar" style="width: {{ profile_completion }}%">
+                            {{ profile_completion }}% Complete
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Projects</h5>
+                                    <p class="card-text display-4">{{ project_stats.total }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Contests</h5>
+                                    <p class="card-text display-4">{{ contest_stats.total }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-info text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Applications</h5>
+                                    <p class="card-text display-4">{{ job_stats.total }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Quick Actions</h3>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'academic_records' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-graduation-cap"></i> Academic Records
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'projects' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-project-diagram"></i> Projects
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'contests' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-trophy"></i> Contests
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'resume_templates' %}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-file-alt"></i> Resume Builder
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'job_list' %}" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-briefcase"></i> Job Listings
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'job_applications' %}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-clipboard-list"></i> Applications
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">Recent Activities</h3>
+                    
+                    <h5 class="mt-4">Recent Projects</h5>
+                    {% for project in recent_projects %}
+                        <div class="mb-3">
+                            <h6 class="mb-1">{{ project.title }}</h6>
+                            <p class="mb-1 text-muted">{{ project.start_date|date:"F d, Y" }} - {{ project.end_date|date:"F d, Y" }}</p>
+                            <a href="{% url 'project_detail' project.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        </div>
+                    {% endfor %}
+                    
+                    <h5 class="mt-4">Recent Contests</h5>
+                    {% for contest in recent_contests %}
+                        <div class="mb-3">
+                            <h6 class="mb-1">{{ contest.event_name }}</h6>
+                            <p class="mb-1 text-muted">{{ contest.date_of_participation|date:"F d, Y" }}</p>
+                            <span class="badge bg-{{ contest.outcome|lower }}">{{ contest.get_outcome_display }}</span>
+                        </div>
+                    {% endfor %}
+                    
+                    <h5 class="mt-4">Recent Applications</h5>
+                    {% for application in recent_applications %}
+                        <div class="mb-3">
+                            <h6 class="mb-1">{{ application.job.title }}</h6>
+                            <p class="mb-1 text-muted">{{ application.job.company_name }}</p>
+                            <span class="badge bg-{{ application.status|lower }}">{{ application.get_status_display }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Notifications</h3>
+                    {% for notification in notifications %}
+                        <div class="mb-3">
+                            <h6 class="mb-1">{{ notification.title }}</h6>
+                            <p class="mb-1">{{ notification.message }}</p>
+                            <small class="text-muted">{{ notification.created_at|date:"F d, Y" }}</small>
+                        </div>
+                    {% endfor %}
+                    <a href="{% url 'notifications' %}" class="btn btn-outline-primary w-100">View All Notifications</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

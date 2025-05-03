@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Student Profile - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Complete Your Student Profile</h2>
+                <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="college" class="form-label">College</label>
+                                <select name="college" id="college" class="form-select" required>
+                                    <option value="">Select a college</option>
+                                    {% for college in colleges %}
+                                        <option value="{{ college.id }}">{{ college.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="course" class="form-label">Course</label>
+                                <select name="course" id="course" class="form-select" required>
+                                    <option value="">Select a course</option>
+                                    {% for course in courses %}
+                                        <option value="{{ course.id }}">{{ course.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {{ form.specialization|as_crispy_field }}
+                            {{ form.year_of_study|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.profile_picture|as_crispy_field }}
+                            {{ form.linkedin_url|as_crispy_field }}
+                            {{ form.github_url|as_crispy_field }}
+                            {{ form.portfolio_url|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.bio|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg mt-3">Create Profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
