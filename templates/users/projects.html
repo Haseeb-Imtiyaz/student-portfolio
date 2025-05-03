@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Projects - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Your Projects</h2>
+                    
+                    <!-- Add New Project Form -->
+                    <div class="mb-4">
+                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addProjectForm">
+                            Add New Project
+                        </button>
+                        <div class="collapse mt-3" id="addProjectForm">
+                            <div class="card card-body">
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    {{ form|crispy }}
+                                    <button type="submit" class="btn btn-success">Save Project</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Project List -->
+                    <div class="row">
+                        {% for project in projects %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    {% if project.thumbnail %}
+                                        <img src="{{ project.thumbnail.url }}" class="card-img-top" alt="{{ project.title }}">
+                                    {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ project.title }}</h5>
+                                        <p class="card-text">{{ project.description|truncatechars:100 }}</p>
+                                        <div class="mb-2">
+                                            <span class="badge bg-primary">{{ project.get_project_type_display }}</span>
+                                            <span class="badge bg-secondary">{{ project.team_size }} members</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{% url 'project_detail' project.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                            <small class="text-muted">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    No projects found. Add your first project above.
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Project Statistics</h4>
+                    <div class="mb-3">
+                        <h6>Total Projects</h6>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ project_stats.percentage }}%">
+                                {{ project_stats.total }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>By Type</h6>
+                        <ul class="list-group">
+                            {% for type, count in project_stats.by_type.items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ type }}
+                                    <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

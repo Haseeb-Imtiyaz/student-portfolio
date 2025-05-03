@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ job.title }} - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title">{{ job.title }}</h2>
+                    <h5 class="card-subtitle mb-3 text-muted">{{ job.company_name }}</h5>
+                    
+                    <div class="mb-4">
+                        <span class="badge bg-primary me-2">{{ job.job_type }}</span>
+                        <span class="badge bg-secondary me-2">{{ job.location }}</span>
+                        <span class="badge bg-info">{{ job.salary_range }}</span>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Job Description</h5>
+                        <p class="card-text">{{ job.description }}</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Requirements</h5>
+                        <ul class="list-group">
+                            {% for requirement in job.requirements.all %}
+                                <li class="list-group-item">{{ requirement.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Skills Required</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for skill in job.skills_required.all %}
+                                <span class="badge bg-success">{{ skill.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>About the Company</h5>
+                        <p class="card-text">{{ job.company_description }}</p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">Posted on: {{ job.created_at|date:"F d, Y" }}</small>
+                        </div>
+                        {% if user.is_authenticated and user.user_type == 'student' %}
+                            <a href="{% url 'job_apply' job.pk %}" class="btn btn-primary">Apply Now</a>
+                        {% elif not user.is_authenticated %}
+                            <a href="{% url 'login' %}?next={% url 'job_apply' job.pk %}" class="btn btn-primary">Login to Apply</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Info</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Experience Required</span>
+                            <span>{{ job.experience_required }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Education Required</span>
+                            <span>{{ job.education_required }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Application Deadline</span>
+                            <span>{{ job.application_deadline|date:"F d, Y" }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Similar Jobs</h5>
+                    {% for similar_job in similar_jobs %}
+                        <div class="mb-3">
+                            <h6 class="mb-1">{{ similar_job.title }}</h6>
+                            <p class="mb-1 text-muted">{{ similar_job.company_name }}</p>
+                            <a href="{% url 'job_detail' similar_job.pk %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
