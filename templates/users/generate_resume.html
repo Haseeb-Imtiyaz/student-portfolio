@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate Resume - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Generate Your Resume</h2>
+                    
+                    {% if templates %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="row">
+                                {% for template in templates %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="template" 
+                                                           id="template_{{ template.id }}" value="{{ template.id }}"
+                                                           {% if selected_template_id == template.id or forloop.first %}checked{% endif %}>
+                                                    <label class="form-check-label" for="template_{{ template.id }}">
+                                                        <h5 class="card-title">{{ template.name }}</h5>
+                                                    </label>
+                                                </div>
+                                                <p class="card-text">{{ template.description }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h5 class="alert-heading">Before generating your resume:</h5>
+                                <ul class="mb-0">
+                                    <li>Make sure your profile information is up to date</li>
+                                    <li>Add your academic records for accurate CGPA calculation</li>
+                                    <li>Include your best projects and achievements</li>
+                                    <li>Update your skills with proficiency levels</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-file-pdf"></i> Generate Resume
+                                </button>
+                                <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to Profile
+                                </a>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <h5 class="alert-heading">No Resume Templates Available</h5>
+                            <p class="mb-0">Please contact the administrator to add resume templates.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
