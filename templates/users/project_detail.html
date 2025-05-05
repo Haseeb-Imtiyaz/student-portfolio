@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ project.title }} - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="card-title mb-0">{{ project.title }}</h2>
+                        <div>
+                            <a href="{% url 'projects' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Projects
+                            </a>
+                            <a href="{% url 'delete_project' project.id %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete Project
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Project Type:</strong> {{ project.get_project_type_display }}</p>
+                            <p><strong>Duration:</strong> {{ project.start_date|date:"F d, Y" }} - {{ project.end_date|date:"F d, Y" }}</p>
+                            <p><strong>Team Size:</strong> {{ project.team_size }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Role:</strong> {{ project.role }}</p>
+                            <p><strong>Tools Used:</strong> {{ project.tools_used }}</p>
+                            {% if project.github_link %}
+                                <p><strong>GitHub:</strong> <a href="{{ project.github_link }}" target="_blank">{{ project.github_link }}</a></p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>Description</h4>
+                        <p>{{ project.description|linebreaks }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>Project Files</h4>
+                        {% if project.files.exists %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>File Name</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Uploaded</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for file in project.files.all %}
+                                            <tr>
+                                                <td>{{ file.filename }}</td>
+                                                <td>{{ file.get_file_type_display }}</td>
+                                                <td>{{ file.description }}</td>
+                                                <td>{{ file.uploaded_at|date:"F d, Y" }}</td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="{{ file.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                            <i class="fas fa-download"></i> Download
+                                                        </a>
+                                                        <a href="{% url 'delete_project_file' project.id file.id %}" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">No files uploaded yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Upload File</h4>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ file_form|crispy }}
+                        <button type="submit" class="btn btn-primary w-100">Upload File</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load job_filters %}
+
+{% block title %}{{ job.title }} - Job Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h2 class="card-title">{{ job.title }}</h2>
+                        {% if not is_owner %}
+                            <i class="fas fa-bookmark bookmark-btn {% if is_bookmarked %}active{% endif %}" 
+                               onclick="toggleBookmark(this, {{ job.id }})"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-muted mb-3">{{ job.employer.company_name }}</p>
+                    
+                    <div class="mb-4">
+                        <span class="badge bg-primary me-2">{{ job.job_type }}</span>
+                        <span class="badge bg-secondary me-2">{{ job.location }}</span>
+                        {% if job.stipend_ctc %}
+                            <span class="badge bg-success">{{ job.stipend_ctc }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Job Description</h5>
+                        <p>{{ job.description }}</p>
+                    </div>
+                    
+                    {% if job.skills_required %}
+                        <div class="mb-4">
+                            <h5>Required Skills</h5>
+                            <p>{{ job.skills_required }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if job.eligibility_course or job.eligibility_branch or job.eligibility_year %}
+                        <div class="mb-4">
+                            <h5>Eligibility Criteria</h5>
+                            <ul class="list-unstyled">
+                                {% if job.eligibility_course %}
+                                    <li><strong>Course:</strong> {{ job.eligibility_course }}</li>
+                                {% endif %}
+                                {% if job.eligibility_branch %}
+                                    <li><strong>Branch:</strong> {{ job.eligibility_branch }}</li>
+                                {% endif %}
+                                {% if job.eligibility_year %}
+                                    <li><strong>Year:</strong> {{ job.eligibility_year }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h5>Additional Information</h5>
+                        <ul class="list-unstyled">
+                            {% if job.duration %}
+                                <li><strong>Duration:</strong> {{ job.duration }}</li>
+                            {% endif %}
+                            {% if job.openings %}
+                                <li><strong>Number of Openings:</strong> {{ job.openings }}</li>
+                            {% endif %}
+                            {% if job.application_deadline %}
+                                <li><strong>Application Deadline:</strong> {{ job.application_deadline|date:"F d, Y" }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            {% if is_owner %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Job Management</h5>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'job_edit' job.id %}" class="btn btn-primary">
+                                <i class="fas fa-edit"></i> Edit Job
+                            </a>
+                            <a href="{% url 'employer_job_applications' job.id %}" class="btn btn-info">
+                                <i class="fas fa-users"></i> View Applications
+                            </a>
+                            <a href="{% url 'delete_job' job.id %}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this job?')">
+                                <i class="fas fa-trash"></i> Delete Job
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Application Statistics</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Total Applications:</strong> {{ total_applications }}</li>
+                            <li><strong>Shortlisted:</strong> {{ shortlisted_count }}</li>
+                            <li><strong>Hired:</strong> {{ hired_count }}</li>
+                        </ul>
+                    </div>
+                </div>
+            {% else %}
+                {% if user.user_type == 'student' %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Apply for this Job</h5>
+                            <a href="{% url 'job_apply' job.id %}" class="btn btn-primary w-100">
+                                Apply Now
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleBookmark(element, jobId) {
+        fetch(`/jobs/${jobId}/bookmark/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.status === 'added') {
+                element.classList.add('active');
+            } else {
+                element.classList.remove('active');
+            }
+        });
+    }
+</script>
+{% endblock %} 

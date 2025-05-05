@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Update Profile - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Update Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <h5 class="mb-3">Personal Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ u_form.first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ u_form.last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ u_form.email|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ u_form.phone_number|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Details -->
+                        <h5 class="mb-3 mt-4">Profile Details</h5>
+                        {% if user.user_type == 'student' %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.profile_picture|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.date_of_birth|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.gender|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.phone_number|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ p_form.address|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    {{ p_form.city|as_crispy_field }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ p_form.state|as_crispy_field }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ p_form.pin_code|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.college|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.course|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.specialization|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.year_of_study|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.semester|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.expected_graduation_year|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ p_form.bio|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    {{ p_form.linkedin_url|as_crispy_field }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ p_form.github_url|as_crispy_field }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ p_form.portfolio_url|as_crispy_field }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.company_logo|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.company_name|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.industry|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.location|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ p_form.company_description|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ p_form.company_website|as_crispy_field }}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

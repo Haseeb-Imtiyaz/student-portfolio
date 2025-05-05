@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Contests & Achievements - Student Portfolio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Contests & Achievements</h2>
+                    
+                    <!-- Add New Contest Form -->
+                    <div class="mb-4">
+                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addContestForm">
+                            Add New Contest/Achievement
+                        </button>
+                        <div class="collapse mt-3" id="addContestForm">
+                            <div class="card card-body">
+                                <form method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    {{ form|crispy }}
+                                    <button type="submit" class="btn btn-success">Save Contest</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contest List -->
+                    <div class="row">
+                        {% for contest in contests %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ contest.event_name }}</h5>
+                                        <p class="card-text">{{ contest.description|truncatechars:100 }}</p>
+                                        <div class="mb-2">
+                                            <span class="badge bg-primary">{{ contest.get_category_display }}</span>
+                                            <span class="badge bg-{{ contest.outcome|lower }}">{{ contest.get_outcome_display }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                {% if contest.certificate %}
+                                                    <a href="{{ contest.certificate.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                        View Certificate
+                                                    </a>
+                                                {% endif %}
+                                                {% if contest.video_link %}
+                                                    <a href="{{ contest.video_link }}" class="btn btn-sm btn-outline-info" target="_blank">
+                                                        Watch Video
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <a href="{% url 'delete_contest' contest.id %}" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ contest.date_of_participation|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    No contests or achievements found. Add your first entry above.
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Contest Statistics</h4>
+                    <div class="mb-3">
+                        <h6>Total Contests</h6>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ contest_stats.percentage }}%">
+                                {{ contest_stats.total }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h6>By Category</h6>
+                        <ul class="list-group">
+                            {% for category, count in contest_stats.by_category.items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ category }}
+                                    <span class="badge bg-primary rounded-pill">{{ count }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <h6>By Outcome</h6>
+                        <ul class="list-group">
+                            {% for outcome, count in contest_stats.by_outcome.items %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ outcome }}
+                                    <span class="badge bg-{{ outcome|lower }} rounded-pill">{{ count }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

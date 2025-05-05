@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Job Applications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">My Job Applications</h2>
+    
+    <!-- Application Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Application Statistics</h5>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Total</h6>
+                                <p class="stat-number">{{ job_stats.total }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Applied</h6>
+                                <p class="stat-number">{{ job_stats.applied }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Under Review</h6>
+                                <p class="stat-number">{{ job_stats.under_review }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Shortlisted</h6>
+                                <p class="stat-number">{{ job_stats.shortlisted }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Rejected</h6>
+                                <p class="stat-number">{{ job_stats.rejected }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="stat-box">
+                                <h6>Hired</h6>
+                                <p class="stat-number">{{ job_stats.hired }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filter Applications</h5>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'job_applications' %}" 
+                           class="btn btn-outline-primary {% if not current_status %}active{% endif %}">
+                            All
+                        </a>
+                        <a href="{% url 'job_applications' %}?status=applied" 
+                           class="btn btn-outline-primary {% if current_status == 'applied' %}active{% endif %}">
+                            Applied
+                        </a>
+                        <a href="{% url 'job_applications' %}?status=under_review" 
+                           class="btn btn-outline-primary {% if current_status == 'under_review' %}active{% endif %}">
+                            Under Review
+                        </a>
+                        <a href="{% url 'job_applications' %}?status=shortlisted" 
+                           class="btn btn-outline-primary {% if current_status == 'shortlisted' %}active{% endif %}">
+                            Shortlisted
+                        </a>
+                        <a href="{% url 'job_applications' %}?status=rejected" 
+                           class="btn btn-outline-primary {% if current_status == 'rejected' %}active{% endif %}">
+                            Rejected
+                        </a>
+                        <a href="{% url 'job_applications' %}?status=hired" 
+                           class="btn btn-outline-primary {% if current_status == 'hired' %}active{% endif %}">
+                            Hired
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Applications List -->
+    <div class="row">
+        <div class="col-md-12">
+            {% if applications %}
+                {% for application in applications %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title">{{ application.job.title }}</h5>
+                                    <p class="text-muted">{{ application.job.employer.company_name }}</p>
+                                </div>
+                                <span class="badge {% if application.status == 'applied' %}bg-primary
+                                                  {% elif application.status == 'under_review' %}bg-info
+                                                  {% elif application.status == 'shortlisted' %}bg-success
+                                                  {% elif application.status == 'rejected' %}bg-danger
+                                                  {% elif application.status == 'hired' %}bg-success
+                                                  {% endif %}">
+                                    {{ application.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <p><strong>Applied Date:</strong> {{ application.applied_date|date:"F d, Y" }}</p>
+                                    <p><strong>Job Type:</strong> {{ application.job.job_type }}</p>
+                                    <p><strong>Location:</strong> {{ application.job.location }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    {% if application.cover_letter %}
+                                        <p><strong>Cover Letter:</strong> {{ application.cover_letter|truncatechars:100 }}</p>
+                                    {% endif %}
+                                    {% if application.availability_date %}
+                                        <p><strong>Available From:</strong> {{ application.availability_date|date:"F d, Y" }}</p>
+                                    {% endif %}
+                                    {% if application.feedback %}
+                                        <p><strong>Feedback:</strong> {{ application.feedback }}</p>
+                                    {% endif %}
+                                    {% if application.interview_date %}
+                                        <p><strong>Interview Date:</strong> {{ application.interview_date|date:"F d, Y" }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'job_detail' application.job.id %}" class="btn btn-outline-primary">
+                                    View Job
+                                </a>
+                                {% if application.resume %}
+                                    <a href="{{ application.resume.url }}" class="btn btn-outline-secondary" target="_blank">
+                                        View Resume
+                                    </a>
+                                {% endif %}
+                                {% if application.portfolio_url %}
+                                    <a href="{{ application.portfolio_url }}" class="btn btn-outline-secondary" target="_blank">
+                                        Portfolio
+                                    </a>
+                                {% endif %}
+                                {% if application.github_url %}
+                                    <a href="{{ application.github_url }}" class="btn btn-outline-secondary" target="_blank">
+                                        GitHub
+                                    </a>
+                                {% endif %}
+                                {% if application.linkedin_url %}
+                                    <a href="{{ application.linkedin_url }}" class="btn btn-outline-secondary" target="_blank">
+                                        LinkedIn
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5>No applications found</h5>
+                        <p>You haven't applied to any jobs yet.</p>
+                        <a href="{% url 'job_list' %}" class="btn btn-primary">Browse Jobs</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-box {
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+    }
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+    }
+    .card {
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.5em 1em;
+    }
+</style>
+{% endblock %} 
