@@ -17,9 +17,8 @@
                         <h4>Choose a Template</h4>
                         <div class="row">
                             {% for template in templates %}
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-12 mb-3">
                                     <div class="card h-100">
-                                        <img src="{{ template.thumbnail.url }}" class="card-img-top" alt="{{ template.name }}">
                                         <div class="card-body">
                                             <h5 class="card-title">{{ template.name }}</h5>
                                             <p class="card-text">{{ template.description }}</p>
@@ -37,6 +36,12 @@
                                 </div>
                             {% endfor %}
                         </div>
+                    </div>
+
+                    <!-- Coming Soon Message -->
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">More Templates Coming Soon!</h5>
+                        <p class="mb-0">We are working on adding more professional resume templates. Stay tuned for updates!</p>
                     </div>
                     
                     <!-- Customize Resume -->

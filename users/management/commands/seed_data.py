@@ -198,18 +198,6 @@ class Command(BaseCommand):
                 'description': 'A clean and professional template suitable for all industries',
                 'template_path': 'resumes/professional_classic.html',
                 'is_active': True
-            },
-            {
-                'name': 'Modern Tech',
-                'description': 'A modern template designed specifically for tech professionals',
-                'template_path': 'resumes/modern_tech.html',
-                'is_active': True
-            },
-            {
-                'name': 'Creative',
-                'description': 'A creative template for design and creative professionals',
-                'template_path': 'resumes/creative.html',
-                'is_active': True
             }
         ]
 

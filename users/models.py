@@ -338,19 +338,26 @@ class Job(models.Model):
     JOB_TYPE_CHOICES = [
         ('internship', 'Internship'),
         ('full_time', 'Full Time'),
-        ('part_time', 'Part Time'),
         ('contract', 'Contract')
+    ]
+    
+    LOCATION_CHOICES = [
+        ('remote', 'Remote'),
+        ('on_site', 'On-Site'),
+        ('hybrid', 'Hybrid')
     ]
     
     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name='jobs')
     title = models.CharField(max_length=200)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES)
-    location = models.CharField(max_length=200)
-    experience_required = models.CharField(max_length=100, default='0-1 years')
-    salary_range = models.CharField(max_length=100, default='Not Specified')
+    location = models.CharField(max_length=20, choices=LOCATION_CHOICES)
+    duration = models.CharField(max_length=100, blank=True, null=True)  # For internships
+    stipend_ctc = models.CharField(max_length=100, default='Not specified')
     description = models.TextField()
-    skills_required = models.CharField(max_length=500)
-    eligibility = models.TextField()
+    skills_required = models.ManyToManyField('Skill', related_name='jobs')
+    eligibility_course = models.CharField(max_length=200, default='Any')
+    eligibility_branch = models.CharField(max_length=200, default='Any')
+    eligibility_year = models.CharField(max_length=100, default='Any')
     openings = models.IntegerField(default=1)
     last_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)

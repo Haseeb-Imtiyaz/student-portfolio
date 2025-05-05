@@ -33,10 +33,15 @@ urlpatterns = [
     path('jobs/', views.job_list, name='job_list'),
     path('jobs/create/', views.job_create, name='job_create'),
     path('jobs/<int:job_id>/', views.job_detail, name='job_detail'),
+    path('jobs/<int:job_id>/edit/', views.job_edit, name='job_edit'),
+    path('jobs/<int:job_id>/delete/', views.delete_job, name='delete_job'),
+    path('jobs/applications/', views.employer_job_applications, name='employer_job_applications'),
+    path('jobs/applications/<int:job_id>/', views.employer_job_applications, name='employer_job_applications'),
+    path('jobs/applications/update/<int:application_id>/', views.update_application_status, name='update_application_status'),
     path('jobs/<int:job_id>/apply/', views.job_apply, name='job_apply'),
     path('jobs/<int:job_id>/bookmark/', views.toggle_job_bookmark, name='toggle_job_bookmark'),
     path('jobs/bookmarked/', views.bookmarked_jobs, name='bookmarked_jobs'),
-    path('jobs/applications/', views.job_applications, name='job_applications'),
+    path('jobs/my-applications/', views.job_applications, name='job_applications'),
     
     # Resume URLs
     path('resume/templates/', views.resume_templates, name='resume_templates'),

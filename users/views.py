@@ -3,12 +3,12 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
-from .forms import UserRegistrationForm, StudentProfileForm, EmployerProfileForm, UserUpdateForm, AcademicRecordForm, ProjectForm, ProjectFileForm, ContestForm, JobForm, JobApplicationForm, SkillForm, StudentSkillForm, ResumeTemplateForm, NotificationForm, CollegeForm, CourseForm, PlacementOfficerForm, NotificationSettingsForm
+from .forms import UserRegistrationForm, StudentProfileForm, EmployerProfileForm, UserUpdateForm, AcademicRecordForm, ProjectForm, ProjectFileForm, ContestForm, JobForm, JobApplicationForm, SkillForm, StudentSkillForm, ResumeTemplateForm, NotificationForm, CollegeForm, CourseForm, PlacementOfficerForm, NotificationSettingsForm, JobFilterForm
 from .models import StudentProfile, EmployerProfile, AcademicRecord, Project, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, JobBookmark, ProjectFile, User
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 from reportlab.pdfgen import canvas
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
@@ -21,6 +21,8 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from reportlab.lib.colors import HexColor
+from django.db.models import Q
+from django.template.exceptions import TemplateDoesNotExist
 
 def register(request):
     if request.method == 'POST':
@@ -213,8 +215,32 @@ def employer_dashboard(request):
         return redirect('create_employer_profile')
     
     employer_profile = request.user.employer_profile
+    
+    # Get all jobs for the employer
+    jobs = Job.objects.filter(employer=employer_profile)
+    
+    # Calculate statistics
+    total_jobs = jobs.count()
+    active_jobs = jobs.filter(is_active=True).count()
+    total_applications = JobApplication.objects.filter(job__employer=employer_profile).count()
+    hired_count = JobApplication.objects.filter(job__employer=employer_profile, status='hired').count()
+    
+    # Get recent applications
+    recent_applications = JobApplication.objects.filter(
+        job__employer=employer_profile
+    ).order_by('-applied_date')[:5]
+    
+    # Get recent jobs
+    recent_jobs = jobs.order_by('-created_at')[:5]
+    
     context = {
         'employer_profile': employer_profile,
+        'total_jobs': total_jobs,
+        'active_jobs': active_jobs,
+        'total_applications': total_applications,
+        'hired_count': hired_count,
+        'recent_applications': recent_applications,
+        'recent_jobs': recent_jobs
     }
     return render(request, 'users/employer_dashboard.html', context)
 
@@ -409,21 +435,40 @@ def delete_contest(request, contest_id):
 
 @login_required
 def job_applications(request):
+    # Check if user is a student
+    if request.user.user_type != 'student':
+        messages.error(request, 'Only students can view job applications.')
+        return redirect('home')
+    
+    # Check if student profile exists
     if not hasattr(request.user, 'student_profile'):
+        messages.info(request, 'Please create your student profile first.')
         return redirect('create_student_profile')
     
     student_profile = request.user.student_profile
-    applications = student_profile.job_applications.all()
-    job_stats = student_profile.get_job_stats()
     
-    # Filter applications by status if specified
+    # Get all applications for the student
+    applications = JobApplication.objects.filter(student=student_profile)
+    
+    # Filter by status if specified
     status = request.GET.get('status')
     if status:
         applications = applications.filter(status=status)
     
+    # Get job statistics
+    job_stats = {
+        'total': applications.count(),
+        'applied': applications.filter(status='applied').count(),
+        'under_review': applications.filter(status='under_review').count(),
+        'shortlisted': applications.filter(status='shortlisted').count(),
+        'rejected': applications.filter(status='rejected').count(),
+        'hired': applications.filter(status='hired').count()
+    }
+    
     context = {
         'applications': applications,
         'job_stats': job_stats,
+        'current_status': status
     }
     return render(request, 'users/job_applications.html', context)
 
@@ -459,109 +504,102 @@ def generate_resume(request, template_id=None):
             'student_skills': student_skills
         }
         
-        # Get the template content
+        # Get the template path and remove any 'templates/' prefix
         template_path = template.template_path
+        if template_path.startswith('templates/'):
+            template_path = template_path[10:]  # Remove 'templates/' prefix
         
-        # Render the template
-        rendered_content = render_to_string(template_path, context)
-        
-        # Create PDF using ReportLab
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
-        styles = getSampleStyleSheet()
-        
-        # Create custom styles
-        title_style = ParagraphStyle(
-            'Title',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=30,
-            alignment=1  # Center alignment
-        )
-        
-        section_style = ParagraphStyle(
-            'Section',
-            parent=styles['Heading2'],
-            fontSize=18,
-            spaceAfter=20,
-            textColor=HexColor('#333333')
-        )
-        
-        item_title_style = ParagraphStyle(
-            'ItemTitle',
-            parent=styles['Normal'],
-            fontSize=14,
-            spaceAfter=5,
-            textColor=HexColor('#333333')
-        )
-        
-        item_subtitle_style = ParagraphStyle(
-            'ItemSubtitle',
-            parent=styles['Normal'],
-            fontSize=12,
-            spaceAfter=5,
-            textColor=HexColor('#666666'),
-            fontName='Helvetica-Oblique'
-        )
-        
-        # Create paragraphs with proper styling
-        paragraphs = []
-        
-        # Add header
-        paragraphs.append(Paragraph(student_profile.user.get_full_name(), title_style))
-        
-        # Add contact info
-        contact_info = f"{student_profile.phone_number} | {student_profile.user.email}"
-        if student_profile.linkedin_url:
-            contact_info += f" | LinkedIn: {student_profile.linkedin_url}"
-        if student_profile.github_url:
-            contact_info += f" | GitHub: {student_profile.github_url}"
-        paragraphs.append(Paragraph(contact_info, styles['Normal']))
-        paragraphs.append(Spacer(1, 30))
-        
-        # Add education section
-        paragraphs.append(Paragraph("Education", section_style))
-        education_info = f"{student_profile.course.name}<br/>{student_profile.college.name}<br/>Expected Graduation: {student_profile.expected_graduation_year}<br/>CGPA: {cgpa}"
-        paragraphs.append(Paragraph(education_info, styles['Normal']))
-        paragraphs.append(Spacer(1, 20))
-        
-        # Add skills section
-        if student_skills:
-            paragraphs.append(Paragraph("Skills", section_style))
-            skills_text = ", ".join([skill.skill.name for skill in student_skills])
-            paragraphs.append(Paragraph(skills_text, styles['Normal']))
+        try:
+            # Render the template
+            rendered_content = render_to_string(template_path, context)
+            
+            # Create PDF using ReportLab
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            
+            # Create custom styles
+            title_style = ParagraphStyle(
+                'Title',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=30,
+                alignment=1  # Center alignment
+            )
+            
+            section_style = ParagraphStyle(
+                'Section',
+                parent=styles['Heading2'],
+                fontSize=18,
+                spaceAfter=20,
+                textColor=HexColor('#333333')
+            )
+            
+            # Create paragraphs with proper styling
+            paragraphs = []
+            
+            # Add header
+            paragraphs.append(Paragraph(student_profile.user.get_full_name(), title_style))
+            
+            # Add contact info
+            contact_info = f"{student_profile.phone_number} | {student_profile.user.email}"
+            if student_profile.linkedin_url:
+                contact_info += f" | LinkedIn: {student_profile.linkedin_url}"
+            if student_profile.github_url:
+                contact_info += f" | GitHub: {student_profile.github_url}"
+            paragraphs.append(Paragraph(contact_info, styles['Normal']))
+            paragraphs.append(Spacer(1, 30))
+            
+            # Add education section
+            paragraphs.append(Paragraph("Education", section_style))
+            education_info = f"{student_profile.course.name}<br/>{student_profile.college.name}<br/>Expected Graduation: {student_profile.expected_graduation_year}<br/>CGPA: {cgpa}"
+            paragraphs.append(Paragraph(education_info, styles['Normal']))
             paragraphs.append(Spacer(1, 20))
-        
-        # Add projects section
-        if projects:
-            paragraphs.append(Paragraph("Projects", section_style))
-            for project in projects:
-                project_text = f"<b>{project.title}</b><br/>{project.role} | Team Size: {project.team_size}<br/>{project.description}<br/>Technologies: {project.tools_used}"
-                paragraphs.append(Paragraph(project_text, styles['Normal']))
+            
+            # Add skills section
+            if student_skills:
+                paragraphs.append(Paragraph("Skills", section_style))
+                skills_text = ", ".join([skill.skill.name for skill in student_skills])
+                paragraphs.append(Paragraph(skills_text, styles['Normal']))
+                paragraphs.append(Spacer(1, 20))
+            
+            # Add projects section
+            if projects:
+                paragraphs.append(Paragraph("Projects", section_style))
+                for project in projects:
+                    project_text = f"<b>{project.title}</b><br/>{project.role} | Team Size: {project.team_size}<br/>{project.description}<br/>Technologies: {project.tools_used}"
+                    paragraphs.append(Paragraph(project_text, styles['Normal']))
+                    paragraphs.append(Spacer(1, 10))
                 paragraphs.append(Spacer(1, 10))
-            paragraphs.append(Spacer(1, 10))
-        
-        # Add contests section
-        if contests:
-            paragraphs.append(Paragraph("Contests & Achievements", section_style))
-            for contest in contests:
-                contest_text = f"<b>{contest.event_name}</b><br/>{contest.organized_by}<br/>Date: {contest.date_of_participation}<br/>Outcome: {contest.get_outcome_display()}"
-                paragraphs.append(Paragraph(contest_text, styles['Normal']))
-                paragraphs.append(Spacer(1, 10))
-        
-        # Build the PDF
-        doc.build(paragraphs)
-        
-        # Get the PDF content
-        pdf_content = buffer.getvalue()
-        buffer.close()
-        
-        # Create a response with the PDF
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{student_profile.user.get_full_name()}_resume.pdf"'
-        response.write(pdf_content)
-        
-        return response
+            
+            # Add contests section
+            if contests:
+                paragraphs.append(Paragraph("Contests & Achievements", section_style))
+                for contest in contests:
+                    contest_text = f"<b>{contest.event_name}</b><br/>{contest.organized_by}<br/>Date: {contest.date_of_participation}<br/>Outcome: {contest.get_outcome_display()}"
+                    paragraphs.append(Paragraph(contest_text, styles['Normal']))
+                    paragraphs.append(Spacer(1, 10))
+            
+            # Build the PDF
+            doc.build(paragraphs)
+            
+            # Get the PDF content
+            pdf_content = buffer.getvalue()
+            buffer.close()
+            
+            # Create a response with the PDF
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{student_profile.user.get_full_name()}_resume.pdf"'
+            response.write(pdf_content)
+            
+            return response
+            
+        except TemplateDoesNotExist:
+            messages.error(request, 'Resume template not found. Please try a different template.')
+            return redirect('resume_templates')
+        except Exception as e:
+            messages.error(request, f'Error generating resume: {str(e)}')
+            return redirect('resume_templates')
     
     # If template_id is provided, show the generate form with that template
     if template_id:
@@ -768,56 +806,98 @@ def send_verification_email(request, user):
 
 @login_required
 def job_list(request):
-    if not hasattr(request.user, 'student_profile'):
-        return redirect('create_student_profile')
+    # Check if user is a student or employer
+    if request.user.user_type == 'student':
+        if not hasattr(request.user, 'student_profile'):
+            return redirect('create_student_profile')
+    elif request.user.user_type == 'employer':
+        if not hasattr(request.user, 'employer_profile'):
+            return redirect('create_employer_profile')
     
-    jobs = Job.objects.all()
+    # Get jobs based on user type
+    if request.user.user_type == 'employer':
+        jobs = Job.objects.filter(employer=request.user.employer_profile)
+    else:
+        jobs = Job.objects.all()
+    
+    # Search functionality
+    query = request.GET.get('q')
+    if query:
+        jobs = jobs.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
+            Q(employer__company_name__icontains=query)
+        )
     
     # Advanced search filters
     job_type = request.GET.get('type')
     location = request.GET.get('location')
-    experience = request.GET.get('experience')
-    salary_range = request.GET.get('salary')
     skills = request.GET.get('skills')
-    company = request.GET.get('company')
     
     if job_type:
         jobs = jobs.filter(job_type=job_type)
     if location:
         jobs = jobs.filter(location__icontains=location)
-    if experience:
-        jobs = jobs.filter(experience_required__icontains=experience)
-    if salary_range:
-        jobs = jobs.filter(salary_range__icontains=salary_range)
     if skills:
-        jobs = jobs.filter(skills_required__icontains=skills)
-    if company:
-        jobs = jobs.filter(employer__company_name__icontains=company)
+        skills_list = [skill.strip() for skill in skills.split(',')]
+        for skill in skills_list:
+            jobs = jobs.filter(skills_required__icontains=skill)
+    
+    # Add bookmark status for students
+    if request.user.user_type == 'student':
+        for job in jobs:
+            job.is_bookmarked = JobBookmark.objects.filter(student=request.user.student_profile, job=job).exists()
     
     # Pagination
     paginator = Paginator(jobs, 10)
     page = request.GET.get('page')
-    jobs = paginator.get_page(page)
+    try:
+        jobs = paginator.page(page)
+    except PageNotAnInteger:
+        jobs = paginator.page(1)
+    except EmptyPage:
+        jobs = paginator.page(paginator.num_pages)
+    
+    # Create filter form
+    filter_form = JobFilterForm(request.GET or None)
     
     context = {
         'jobs': jobs,
-        'job_types': Job.JOB_TYPE_CHOICES,
-        'experience_levels': ['Entry Level', 'Mid Level', 'Senior Level', 'Expert'],
-        'salary_ranges': ['0-3 LPA', '3-6 LPA', '6-10 LPA', '10-15 LPA', '15+ LPA'],
+        'filter_form': filter_form,
+        'query': query,
+        'is_employer': request.user.user_type == 'employer'
     }
     return render(request, 'users/job_list.html', context)
 
 @login_required
 def job_detail(request, job_id):
-    if not hasattr(request.user, 'student_profile'):
-        return redirect('create_student_profile')
-    
     job = get_object_or_404(Job, id=job_id)
-    is_bookmarked = JobBookmark.objects.filter(user=request.user, job=job).exists()
+    
+    # If user is a student, check for student profile
+    if request.user.user_type == 'student':
+        if not hasattr(request.user, 'student_profile'):
+            return redirect('create_student_profile')
+        is_bookmarked = JobBookmark.objects.filter(student=request.user.student_profile, job=job).exists()
+    else:
+        # For employers, check if they own the job
+        if request.user.user_type == 'employer' and hasattr(request.user, 'employer_profile'):
+            is_owner = job.employer == request.user.employer_profile
+        else:
+            is_owner = False
+        is_bookmarked = False
+    
+    # Calculate application statistics
+    total_applications = job.applications.count()
+    shortlisted_count = job.applications.filter(status='shortlisted').count()
+    hired_count = job.applications.filter(status='hired').count()
     
     context = {
         'job': job,
-        'is_bookmarked': is_bookmarked
+        'is_bookmarked': is_bookmarked,
+        'is_owner': is_owner if request.user.user_type == 'employer' else False,
+        'total_applications': total_applications,
+        'shortlisted_count': shortlisted_count,
+        'hired_count': hired_count
     }
     return render(request, 'users/job_detail.html', context)
 
@@ -877,7 +957,7 @@ def add_skill(request):
 
 @login_required
 def resume_templates(request):
-    templates = ResumeTemplate.objects.all()
+    templates = ResumeTemplate.objects.filter(is_active=True)
     return render(request, 'users/resume_templates.html', {'templates': templates})
 
 @login_required
@@ -900,4 +980,88 @@ def job_create(request):
     return render(request, 'users/job_form.html', {
         'form': form,
         'title': 'Post New Job'
+    })
+
+@login_required
+def employer_job_applications(request, job_id=None):
+    if request.user.user_type != 'employer':
+        messages.error(request, 'Only employers can view applications.')
+        return redirect('home')
+    
+    if not hasattr(request.user, 'employer_profile'):
+        messages.error(request, 'Please create an employer profile first.')
+        return redirect('create_employer_profile')
+    
+    employer_profile = request.user.employer_profile
+    job = None
+    if job_id:
+        job = get_object_or_404(Job, id=job_id, employer=employer_profile)
+        applications = job.applications.all()
+    else:
+        applications = JobApplication.objects.filter(job__employer=employer_profile)
+    
+    # Get all jobs for the employer
+    jobs = Job.objects.filter(employer=employer_profile)
+    
+    context = {
+        'applications': applications,
+        'jobs': jobs,
+        'selected_job': job
+    }
+    return render(request, 'users/employer_applications.html', context)
+
+@login_required
+def update_application_status(request, application_id):
+    if not hasattr(request.user, 'employer_profile'):
+        messages.error(request, 'Only employers can update application status.')
+        return redirect('home')
+    
+    application = get_object_or_404(JobApplication, id=application_id)
+    if application.job.employer != request.user.employer_profile:
+        messages.error(request, 'You do not have permission to update this application.')
+        return redirect('employer_job_applications')
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in dict(JobApplication.STATUS_CHOICES):
+            application.status = new_status
+            application.save()
+            messages.success(request, 'Application status updated successfully.')
+        else:
+            messages.error(request, 'Invalid status selected.')
+    
+    return redirect('employer_job_applications', job_id=application.job.id)
+
+@login_required
+def delete_job(request, job_id):
+    if not hasattr(request.user, 'employer_profile'):
+        messages.error(request, 'Only employers can delete jobs.')
+        return redirect('home')
+    
+    job = get_object_or_404(Job, id=job_id, employer=request.user.employer_profile)
+    job.delete()
+    messages.success(request, 'Job post deleted successfully.')
+    return redirect('employer_dashboard')
+
+@login_required
+def job_edit(request, job_id):
+    if not hasattr(request.user, 'employer_profile'):
+        messages.error(request, 'Only employers can edit jobs.')
+        return redirect('home')
+    
+    job = get_object_or_404(Job, id=job_id, employer=request.user.employer_profile)
+    
+    if request.method == 'POST':
+        form = JobForm(request.POST, instance=job)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Job updated successfully!')
+            return redirect('job_detail', job_id=job.id)
+    else:
+        form = JobForm(instance=job)
+    
+    return render(request, 'users/job_form.html', {
+        'form': form,
+        'title': 'Edit Job',
+        'job': job
     })

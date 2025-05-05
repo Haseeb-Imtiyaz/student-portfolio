@@ -132,34 +132,38 @@ class JobForm(forms.ModelForm):
     class Meta:
         model = Job
         fields = [
-            'title', 'job_type', 'location', 'experience_required',
-            'salary_range', 'description', 'skills_required', 'eligibility',
+            'title', 'job_type', 'location', 'duration',
+            'stipend_ctc', 'description', 'skills_required',
+            'eligibility_course', 'eligibility_branch', 'eligibility_year',
             'openings', 'last_date'
         ]
         widgets = {
             'last_date': forms.DateInput(attrs={'type': 'date'}),
             'description': forms.Textarea(attrs={'rows': 4}),
-            'eligibility': forms.Textarea(attrs={'rows': 4}),
-            'skills_required': forms.TextInput(attrs={'placeholder': 'e.g., Python, Django, JavaScript'}),
-            'experience_required': forms.TextInput(attrs={'placeholder': 'e.g., 2+ years'}),
-            'salary_range': forms.TextInput(attrs={'placeholder': 'e.g., 5-8 LPA'}),
+            'duration': forms.TextInput(attrs={'placeholder': 'e.g., 3 months'}),
+            'stipend_ctc': forms.TextInput(attrs={'placeholder': 'e.g., 30k/month or 6 LPA'}),
+            'eligibility_course': forms.TextInput(attrs={'placeholder': 'e.g., B.Tech, M.Tech'}),
+            'eligibility_branch': forms.TextInput(attrs={'placeholder': 'e.g., CSE, ECE'}),
+            'eligibility_year': forms.TextInput(attrs={'placeholder': 'e.g., 3rd year, 4th year'}),
         }
         labels = {
             'title': 'Job Title',
             'job_type': 'Employment Type',
             'location': 'Job Location',
-            'experience_required': 'Required Experience',
-            'salary_range': 'Salary Range',
+            'duration': 'Duration (For Internship)',
+            'stipend_ctc': 'Stipend/CTC',
             'description': 'Job Description',
             'skills_required': 'Required Skills',
-            'eligibility': 'Eligibility Criteria',
+            'eligibility_course': 'Eligible Course',
+            'eligibility_branch': 'Eligible Branch',
+            'eligibility_year': 'Eligible Year',
             'openings': 'Number of Openings',
             'last_date': 'Application Deadline'
         }
         help_texts = {
-            'skills_required': 'Enter comma-separated skills required for this position',
-            'eligibility': 'Specify the minimum qualifications and requirements',
-            'last_date': 'Last date to apply for this position'
+            'skills_required': 'Select multiple skills required for this position',
+            'duration': 'Required only for internship positions',
+            'stipend_ctc': 'For internships: Monthly stipend, For full-time: Annual CTC',
         }
 
 class JobApplicationForm(forms.ModelForm):
@@ -251,4 +255,42 @@ class NotificationSettingsForm(forms.ModelForm):
             if isinstance(self.fields[field].widget, forms.CheckboxInput):
                 self.fields[field].widget.attrs['class'] = 'form-check-input'
             else:
-                self.fields[field].widget.attrs['class'] = 'form-control' 
+                self.fields[field].widget.attrs['class'] = 'form-control'
+
+class JobFilterForm(forms.Form):
+    type = forms.ChoiceField(
+        choices=Job.JOB_TYPE_CHOICES,
+        required=False,
+        label='Job Type'
+    )
+    location = forms.CharField(
+        required=False,
+        label='Location'
+    )
+    experience = forms.ChoiceField(
+        choices=[
+            ('', 'Any'),
+            ('Entry Level', 'Entry Level'),
+            ('Mid Level', 'Mid Level'),
+            ('Senior Level', 'Senior Level'),
+            ('Expert', 'Expert')
+        ],
+        required=False,
+        label='Experience Level'
+    )
+    salary = forms.ChoiceField(
+        choices=[
+            ('', 'Any'),
+            ('0-3 LPA', '0-3 LPA'),
+            ('3-6 LPA', '3-6 LPA'),
+            ('6-10 LPA', '6-10 LPA'),
+            ('10-15 LPA', '10-15 LPA'),
+            ('15+ LPA', '15+ LPA')
+        ],
+        required=False,
+        label='Salary Range'
+    )
+    skills = forms.CharField(
+        required=False,
+        label='Skills'
+    ) 

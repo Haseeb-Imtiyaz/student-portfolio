@@ -1,1 +1,1 @@
- 
+# This file is intentionally empty to make templatetags a proper Python package 
