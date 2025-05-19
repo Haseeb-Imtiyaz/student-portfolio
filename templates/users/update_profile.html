@@ -109,7 +109,7 @@
                                     {{ p_form.portfolio_url|as_crispy_field }}
                                 </div>
                             </div>
-                        {% else %}
+                        {% elif user.user_type == 'employer' %}
                             <div class="row">
                                 <div class="col-md-6">
                                     {{ p_form.company_logo|as_crispy_field }}
@@ -134,6 +134,34 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     {{ p_form.company_website|as_crispy_field }}
+                                </div>
+                            </div>
+                        {% elif user.user_type == 'placement_officer' %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.college|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.designation|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.phone_number|as_crispy_field }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ u_form.profile_picture|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ u_form.linkedin_url|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {{ u_form.bio|as_crispy_field }}
                                 </div>
                             </div>
                         {% endif %}

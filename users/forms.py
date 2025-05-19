@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
-from .models import User, StudentProfile, EmployerProfile, AcademicRecord, Project, ProjectFile, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer
+from .models import User, StudentProfile, EmployerProfile, AcademicRecord, Project, ProjectFile, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, Announcement
 
 User = get_user_model()
 
@@ -14,6 +14,11 @@ class UserRegistrationForm(UserCreationForm):
         model = User
         fields = ['username', 'email', 'password1', 'password2', 'phone_number', 'user_type']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add help text for admin user type
+        self.fields['user_type'].help_text = 'Select "Admin" to create an administrator account with full system access.'
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
@@ -24,9 +29,29 @@ class UserRegistrationForm(UserCreationForm):
         return user
 
 class UserUpdateForm(UserChangeForm):
+    email = forms.EmailField()
+    phone_number = forms.CharField(max_length=15, required=False)
+    first_name = forms.CharField(max_length=30, required=False)
+    last_name = forms.CharField(max_length=30, required=False)
+    bio = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
+    profile_picture = forms.ImageField(required=False)
+    linkedin_url = forms.URLField(required=False)
+
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'phone_number']
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'bio', 'profile_picture', 'linkedin_url']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove password field from the form
+        if 'password' in self.fields:
+            del self.fields['password']
+        # Add Bootstrap classes to all fields
+        for field in self.fields:
+            if isinstance(self.fields[field].widget, forms.CheckboxInput):
+                self.fields[field].widget.attrs['class'] = 'form-check-input'
+            else:
+                self.fields[field].widget.attrs['class'] = 'form-control'
 
 class StudentProfileForm(forms.ModelForm):
     class Meta:
@@ -231,6 +256,11 @@ class PlacementOfficerForm(forms.ModelForm):
     class Meta:
         model = PlacementOfficer
         fields = ['college', 'designation', 'phone_number']
+        widgets = {
+            'college': forms.Select(attrs={'class': 'form-control'}),
+            'designation': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
 class NotificationSettingsForm(forms.ModelForm):
     class Meta:
@@ -294,3 +324,21 @@ class JobFilterForm(forms.Form):
         required=False,
         label='Skills'
     ) 
+
+class PlacementOfficerProfileForm(forms.ModelForm):
+    class Meta:
+        model = PlacementOfficer
+        fields = ['college', 'designation', 'phone_number']
+        widgets = {
+            'college': forms.Select(attrs={'class': 'form-control'}),
+            'designation': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class AnnouncementForm(forms.ModelForm):
+    class Meta:
+        model = Announcement
+        fields = ['title', 'content', 'target_group']
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 5}),
+        } 
