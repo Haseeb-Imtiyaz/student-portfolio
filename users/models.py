@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import os
+import datetime
+import secrets
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -21,6 +23,13 @@ class User(AbstractUser):
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # Profile fields
+    bio = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    linkedin_url = models.URLField(blank=True, null=True)
+    github_url = models.URLField(blank=True, null=True)
+    portfolio_url = models.URLField(blank=True, null=True)
+    
     # Notification preferences
     email_notifications = models.BooleanField(default=True)
     push_notifications = models.BooleanField(default=True)
@@ -34,21 +43,26 @@ class User(AbstractUser):
         default='instant'
     )
 
+    def save(self, *args, **kwargs):
+        # If user type is admin, ensure staff and superuser permissions
+        if self.user_type == 'admin':
+            self.is_staff = True
+            self.is_superuser = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
 
     def generate_email_verification_token(self):
-        import secrets
-        import datetime
         self.email_verification_token = secrets.token_urlsafe(32)
-        self.email_verification_token_created_at = datetime.datetime.now()
+        self.email_verification_token_created_at = timezone.now()
         self.save()
         return self.email_verification_token
 
     def verify_email(self, token):
         if (self.email_verification_token == token and 
             self.email_verification_token_created_at and 
-            (datetime.datetime.now() - self.email_verification_token_created_at).days < 1):
+            (timezone.now() - self.email_verification_token_created_at).days < 1):
             self.is_email_verified = True
             self.email_verification_token = None
             self.email_verification_token_created_at = None
@@ -118,7 +132,7 @@ class StudentProfile(models.Model):
     resume_last_updated = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.college.name}"
+        return f"{self.user.get_full_name()} - {self.college.name if self.college else 'No College'}"
     
     def calculate_profile_completion(self):
         total_fields = 15  # Total number of required fields
@@ -330,6 +344,8 @@ class EmployerProfile(models.Model):
     industry = models.CharField(max_length=100, blank=True)
     company_size = models.CharField(max_length=50, blank=True)
     location = models.CharField(max_length=200, blank=True)
+    is_verified = models.BooleanField(default=False)
+    phone_number = models.CharField(max_length=15, blank=True)
 
     def __str__(self):
         return f"{self.company_name} - {self.user.email}"
@@ -484,11 +500,93 @@ class Notification(models.Model):
             self.save()
 
 class PlacementOfficer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='placement_officer')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='placement_officer_profile')
     college = models.ForeignKey(College, on_delete=models.CASCADE, related_name='placement_officers')
     designation = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=15)
     is_approved = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.college.name}"
+
+    def get_students(self):
+        """Get all students from the officer's college"""
+        return StudentProfile.objects.filter(college=self.college)
+
+    def get_students_by_department(self, department):
+        """Get students filtered by department"""
+        return self.get_students().filter(course__name=department)
+
+    def get_students_by_semester(self, semester):
+        """Get students filtered by semester"""
+        return self.get_students().filter(semester=semester)
+
+    def get_students_by_activity(self, min_applications=0):
+        """Get students filtered by minimum number of job applications"""
+        return self.get_students().filter(job_applications__count__gte=min_applications).distinct()
+
+    def get_profile_completion_stats(self):
+        """Get statistics about student profile completion"""
+        students = self.get_students()
+        total_students = students.count()
+        completed_profiles = students.filter(
+            profile_picture__isnull=False,
+            bio__isnull=False,
+            linkedin_url__isnull=False
+        ).count()
+        
+        return {
+            'total_students': total_students,
+            'completed_profiles': completed_profiles,
+            'completion_percentage': (completed_profiles / total_students * 100) if total_students > 0 else 0
+        }
+
+    def get_resume_stats(self):
+        """Get statistics about student resume uploads"""
+        students = self.get_students()
+        total_students = students.count()
+        students_with_resume = students.filter(job_applications__resume__isnull=False).distinct().count()
+        
+        return {
+            'total_students': total_students,
+            'students_with_resume': students_with_resume,
+            'resume_percentage': (students_with_resume / total_students * 100) if total_students > 0 else 0
+        }
+
+    def get_application_stats(self):
+        """Get statistics about student job applications"""
+        students = self.get_students()
+        total_applications = JobApplication.objects.filter(student__in=students).count()
+        total_students = students.count()
+        
+        return {
+            'total_students': total_students,
+            'total_applications': total_applications,
+            'average_applications': total_applications / total_students if total_students > 0 else 0
+        }
+
+    class Meta:
+        ordering = ['-created_at']
+
+class Announcement(models.Model):
+    TARGET_GROUPS = [
+        ('all', 'All Users'),
+        ('students', 'Students Only'),
+        ('employers', 'Employers Only'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    target_group = models.CharField(max_length=20, choices=TARGET_GROUPS)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+        }
+        .name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .contact-info {
+            text-align: right;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .item {
+            margin-bottom: 20px;
+            position: relative;
+            padding-left: 20px;
+        }
+        .item::before {
+            content: "•";
+            color: #3498db;
+            position: absolute;
+            left: 0;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .item-subtitle {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .item-date {
+            float: right;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .skill {
+            background-color: #3498db;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .project-tech {
+            color: #3498db;
+            font-size: 14px;
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="name">{{ student_profile.user.get_full_name }}</div>
+            <div class="contact-info">
+                <div>{{ student_profile.phone_number }}</div>
+                <div>{{ student_profile.user.email }}</div>
+                {% if student_profile.linkedin_url %}
+                <div><a href="{{ student_profile.linkedin_url }}">LinkedIn</a></div>
+                {% endif %}
+                {% if student_profile.github_url %}
+                <div><a href="{{ student_profile.github_url }}">GitHub</a></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Education</div>
+            <div class="item">
+                <div class="item-title">{{ student_profile.course.name }}</div>
+                <div class="item-subtitle">{{ student_profile.college.name }}</div>
+                <div class="item-date">{{ student_profile.expected_graduation_year }}</div>
+                <div>CGPA: {{ academic_records.cgpa }}</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Technical Skills</div>
+            <div class="skills-list">
+                {% for skill in student_skills %}
+                <div class="skill">{{ skill.skill.name }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Projects</div>
+            {% for project in projects %}
+            <div class="item">
+                <div class="item-title">{{ project.title }}</div>
+                <div class="item-subtitle">{{ project.role }} | Team Size: {{ project.team_size }}</div>
+                <div>{{ project.description }}</div>
+                <div class="project-tech">{{ project.tools_technologies }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <div class="section-title">Achievements</div>
+            {% for contest in contests %}
+            <div class="item">
+                <div class="item-title">{{ contest.event_name }}</div>
+                <div class="item-subtitle">{{ contest.organized_by }}</div>
+                <div class="item-date">{{ contest.date_of_participation }}</div>
+                <div>Outcome: {{ contest.get_outcome_display }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html> 

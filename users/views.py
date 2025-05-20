@@ -1,10 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.urls import reverse
-from .forms import UserRegistrationForm, StudentProfileForm, EmployerProfileForm, UserUpdateForm, AcademicRecordForm, ProjectForm, ProjectFileForm, ContestForm, JobForm, JobApplicationForm, SkillForm, StudentSkillForm, ResumeTemplateForm, NotificationForm, CollegeForm, CourseForm, PlacementOfficerForm, NotificationSettingsForm, JobFilterForm
-from .models import StudentProfile, EmployerProfile, AcademicRecord, Project, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, JobBookmark, ProjectFile, User
+from .forms import (
+    UserRegistrationForm, StudentProfileForm, EmployerProfileForm, UserUpdateForm,
+    AcademicRecordForm, ProjectForm, ProjectFileForm, ContestForm, JobForm,
+    JobApplicationForm, SkillForm, StudentSkillForm, ResumeTemplateForm,
+    NotificationForm, CollegeForm, CourseForm, PlacementOfficerForm,
+    NotificationSettingsForm, JobFilterForm, PlacementOfficerProfileForm,
+    AnnouncementForm
+)
+from .models import (
+    StudentProfile, EmployerProfile, AcademicRecord, Project, Contest,
+    Job, JobApplication, Skill, StudentSkill, ResumeTemplate,
+    Notification, College, Course, PlacementOfficer, JobBookmark,
+    ProjectFile, User, Announcement
+)
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 from reportlab.pdfgen import canvas
@@ -23,12 +35,30 @@ from django.utils.html import strip_tags
 from reportlab.lib.colors import HexColor
 from django.db.models import Q
 from django.template.exceptions import TemplateDoesNotExist
+import csv
+from datetime import datetime
+from django.contrib.auth import login as auth_login
+from django.contrib.auth.forms import AuthenticationForm
+from django.db.models import Count, Q
+from django.db.models.functions import TruncDate
+from datetime import timedelta
+from django.contrib.admin.views.decorators import staff_member_required
 
 def register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            
+            # If user type is admin, set staff and superuser permissions
+            if user.user_type == 'admin':
+                user.is_staff = True
+                user.is_superuser = True
+            
+            # Generate email verification token
+            user.generate_email_verification_token()
+            
+            user.save()
             send_verification_email(request, user)
             messages.info(request, 'Please check your email to verify your account.')
             return redirect('login')
@@ -113,24 +143,88 @@ def create_employer_profile(request):
 
 @login_required
 def update_profile(request):
+    # Initialize forms
+    u_form = UserUpdateForm(instance=request.user)
+    p_form = None  # Initialize p_form as None
+    
     if request.method == 'POST':
-        u_form = UserUpdateForm(request.POST, instance=request.user)
+        u_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
         if request.user.user_type == 'student':
-            p_form = StudentProfileForm(request.POST, request.FILES, instance=request.user.student_profile)
-        else:
-            p_form = EmployerProfileForm(request.POST, request.FILES, instance=request.user.employer_profile)
+            try:
+                p_form = StudentProfileForm(request.POST, request.FILES, instance=request.user.student_profile)
+            except StudentProfile.DoesNotExist:
+                messages.error(request, 'Please create your student profile first.')
+                return redirect('create_student_profile')
+        elif request.user.user_type == 'employer':
+            try:
+                p_form = EmployerProfileForm(request.POST, request.FILES, instance=request.user.employer_profile)
+            except EmployerProfile.DoesNotExist:
+                messages.error(request, 'Please create your employer profile first.')
+                return redirect('create_employer_profile')
+        elif request.user.user_type == 'placement_officer':
+            try:
+                p_form = PlacementOfficerProfileForm(request.POST, instance=request.user.placement_officer_profile)
+            except PlacementOfficer.DoesNotExist:
+                messages.error(request, 'Please create your placement officer profile first.')
+                return redirect('create_placement_officer_profile')
             
-        if u_form.is_valid() and p_form.is_valid():
-            u_form.save()
-            p_form.save()
-            messages.success(request, 'Your profile has been updated!')
-            return redirect('profile')
-    else:
-        u_form = UserUpdateForm(instance=request.user)
-        if request.user.user_type == 'student':
-            p_form = StudentProfileForm(instance=request.user.student_profile)
+        # For admin users, we only need to validate and save the user form
+        if request.user.user_type == 'admin':
+            if u_form.is_valid():
+                try:
+                    u_form.save()
+                    messages.success(request, 'Your profile has been updated!')
+                    return redirect('admin_dashboard')
+                except Exception as e:
+                    messages.error(request, f'An error occurred while updating your profile: {str(e)}')
         else:
-            p_form = EmployerProfileForm(instance=request.user.employer_profile)
+            # For other user types, validate both forms
+            if u_form.is_valid() and (p_form is None or p_form.is_valid()):
+                try:
+                    u_form.save()
+                    if p_form:
+                        p_form.save()
+                    messages.success(request, 'Your profile has been updated!')
+                    
+                    # Redirect based on user type
+                    if request.user.user_type == 'student':
+                        return redirect('student_dashboard')
+                    elif request.user.user_type == 'employer':
+                        return redirect('employer_dashboard')
+                    elif request.user.user_type == 'placement_officer':
+                        return redirect('placement_officer_dashboard')
+                    else:
+                        return redirect('home')
+                except Exception as e:
+                    messages.error(request, f'An error occurred while updating your profile: {str(e)}')
+            else:
+                if not u_form.is_valid():
+                    for field, errors in u_form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'Error in {field}: {error}')
+                if p_form and not p_form.is_valid():
+                    for field, errors in p_form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'Error in {field}: {error}')
+    else:
+        if request.user.user_type == 'student':
+            try:
+                p_form = StudentProfileForm(instance=request.user.student_profile)
+            except StudentProfile.DoesNotExist:
+                messages.error(request, 'Please create your student profile first.')
+                return redirect('create_student_profile')
+        elif request.user.user_type == 'employer':
+            try:
+                p_form = EmployerProfileForm(instance=request.user.employer_profile)
+            except EmployerProfile.DoesNotExist:
+                messages.error(request, 'Please create your employer profile first.')
+                return redirect('create_employer_profile')
+        elif request.user.user_type == 'placement_officer':
+            try:
+                p_form = PlacementOfficerProfileForm(instance=request.user.placement_officer_profile)
+            except PlacementOfficer.DoesNotExist:
+                messages.error(request, 'Please create your placement officer profile first.')
+                return redirect('create_placement_officer_profile')
     
     context = {
         'u_form': u_form,
@@ -140,6 +234,8 @@ def update_profile(request):
 
 @login_required
 def profile(request):
+    context = {}  # Initialize context dictionary
+    
     try:
         if request.user.user_type == 'student':
             profile = request.user.student_profile
@@ -148,14 +244,29 @@ def profile(request):
                 'profile': profile,
                 'profile_completion': profile.profile_completion,
             }
-        else:
+        elif request.user.user_type == 'employer':
             profile = request.user.employer_profile
             context = {
                 'profile': profile,
             }
-    except (StudentProfile.DoesNotExist, EmployerProfile.DoesNotExist):
+        elif request.user.user_type == 'placement_officer':
+            profile = request.user.placement_officer_profile
+            context = {
+                'profile': profile,
+            }
+        elif request.user.user_type == 'admin':
+            # For admin users, we use the User model directly
+            context = {
+                'profile': request.user,
+            }
+    except (StudentProfile.DoesNotExist, EmployerProfile.DoesNotExist, PlacementOfficer.DoesNotExist):
         messages.info(request, 'Please create your profile first.')
-        return redirect('create_student_profile' if request.user.user_type == 'student' else 'create_employer_profile')
+        if request.user.user_type == 'student':
+            return redirect('create_student_profile')
+        elif request.user.user_type == 'employer':
+            return redirect('create_employer_profile')
+        elif request.user.user_type == 'placement_officer':
+            return redirect('create_placement_officer_profile')
     
     return render(request, 'users/profile.html', context)
 
@@ -773,9 +884,14 @@ def verify_email(request, token):
     try:
         user = User.objects.get(email_verification_token=token)
         if not user.is_email_verified:
-            user.is_email_verified = True
-            user.save()
-            messages.success(request, 'Your email has been verified successfully!')
+            # Verify the token using the model method
+            if user.verify_email(token):
+                user.is_verified = True  # Set is_verified to True for admin users
+                user.save()
+                messages.success(request, 'Your email has been verified successfully!')
+            else:
+                messages.error(request, 'Verification token has expired. Please request a new verification email.')
+                return redirect('home')
         else:
             messages.info(request, 'Your email is already verified.')
         return redirect('login')
@@ -1065,3 +1181,812 @@ def job_edit(request, job_id):
         'title': 'Edit Job',
         'job': job
     })
+
+def is_placement_officer(user):
+    return (user.is_authenticated and 
+            user.user_type == 'placement_officer' and 
+            hasattr(user, 'placement_officer_profile') and 
+            user.placement_officer_profile.is_approved)
+
+@login_required
+@user_passes_test(is_placement_officer)
+def placement_officer_dashboard(request):
+    try:
+        officer = request.user.placement_officer_profile
+        context = {
+            'profile_stats': officer.get_profile_completion_stats(),
+            'resume_stats': officer.get_resume_stats(),
+            'application_stats': officer.get_application_stats(),
+        }
+        return render(request, 'users/placement_officer/dashboard.html', context)
+    except Exception as e:
+        messages.error(request, f'Error accessing dashboard: {str(e)}')
+        return redirect('home')
+
+@login_required
+@user_passes_test(is_placement_officer)
+def student_list(request):
+    try:
+        officer = request.user.placement_officer_profile
+        department = request.GET.get('department')
+        semester = request.GET.get('semester')
+        min_applications = request.GET.get('min_applications', 0)
+        
+        # Get students from the officer's college
+        students = StudentProfile.objects.filter(college=officer.college).select_related('user', 'course')
+        
+        if department:
+            students = students.filter(course_id=department)
+        if semester:
+            students = students.filter(semester=semester)
+        if min_applications:
+            students = students.annotate(
+                application_count=Count('job_applications')
+            ).filter(application_count__gte=int(min_applications))
+        
+        # Add has_resume property to each student
+        for student in students:
+            student.has_resume = student.job_applications.filter(resume__isnull=False).exists()
+        
+        context = {
+            'students': students,
+            'departments': Course.objects.all(),  # Get all courses since they're not college-specific
+            'semesters': range(1, 9),  # Assuming 8 semesters
+        }
+        return render(request, 'users/placement_officer/student_list.html', context)
+    except Exception as e:
+        messages.error(request, f'Error accessing student list: {str(e)}')
+        return redirect('home')
+
+@login_required
+@user_passes_test(is_placement_officer)
+def download_student_report(request):
+    try:
+        officer = request.user.placement_officer_profile
+        department = request.GET.get('department')
+        semester = request.GET.get('semester')
+        
+        students = StudentProfile.objects.filter(college=officer.college)
+        if department:
+            students = students.filter(course_id=department)
+        if semester:
+            students = students.filter(semester=semester)
+            
+        # Add has_resume property to each student
+        for student in students:
+            student.has_resume = student.job_applications.filter(resume__isnull=False).exists()
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="student_report_{datetime.now().strftime("%Y%m%d")}.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['Name', 'Email', 'Department', 'Semester', 'Phone', 'Profile Completion', 'Resume Status', 'Applications'])
+        
+        for student in students:
+            profile_completion = 'Complete' if student.profile_picture and student.bio and student.linkedin_url else 'Incomplete'
+            resume_status = 'Uploaded' if student.has_resume else 'Not Uploaded'
+            applications = student.job_applications.count()
+            
+            # Format phone number to avoid Excel formula interpretation
+            phone_number = f"'{student.phone_number}" if student.phone_number else 'N/A'
+            
+            writer.writerow([
+                student.user.get_full_name(),
+                student.user.email,
+                student.course.name if student.course else 'N/A',
+                student.semester,
+                phone_number,
+                profile_completion,
+                resume_status,
+                applications
+            ])
+        
+        return response
+    except Exception as e:
+        messages.error(request, f'Error generating report: {str(e)}')
+        return redirect('home')
+
+@login_required
+@user_passes_test(is_placement_officer)
+def student_detail(request, student_id):
+    try:
+        student = get_object_or_404(StudentProfile, id=student_id, college=request.user.placement_officer_profile.college)
+        applications = student.job_applications.all()
+        projects = student.projects.all()
+        
+        # Add has_resume property
+        student.has_resume = student.job_applications.filter(resume__isnull=False).exists()
+        
+        context = {
+            'student': student,
+            'applications': applications,
+            'projects': projects,
+        }
+        return render(request, 'users/placement_officer/student_detail.html', context)
+    except Exception as e:
+        messages.error(request, f'Error accessing student details: {str(e)}')
+        return redirect('home')
+
+def custom_login(request):
+    if request.user.is_authenticated:
+        # If user is already logged in, redirect based on user type
+        if request.user.is_staff:
+            if not request.user.is_verified:
+                messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+                return redirect('home')
+            return redirect('admin_dashboard')
+        elif request.user.user_type == 'student':
+            if not hasattr(request.user, 'student_profile'):
+                return redirect('create_student_profile')
+            return redirect('student_dashboard')
+        elif request.user.user_type == 'employer':
+            if not hasattr(request.user, 'employer_profile'):
+                return redirect('create_employer_profile')
+            return redirect('employer_dashboard')
+        elif request.user.user_type == 'placement_officer':
+            if not hasattr(request.user, 'placement_officer_profile'):
+                return redirect('create_placement_officer_profile')
+            elif not request.user.placement_officer_profile.is_approved:
+                messages.warning(request, 'Your account is pending approval. Please wait for admin approval.')
+                return redirect('home')
+            return redirect('placement_officer_dashboard')
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            
+            # Redirect based on user type
+            if user.is_staff:
+                if not user.is_verified:
+                    messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+                    return redirect('home')
+                return redirect('admin_dashboard')
+            elif user.user_type == 'student':
+                if not hasattr(user, 'student_profile'):
+                    return redirect('create_student_profile')
+                return redirect('student_dashboard')
+            elif user.user_type == 'employer':
+                if not hasattr(user, 'employer_profile'):
+                    return redirect('create_employer_profile')
+                return redirect('employer_dashboard')
+            elif user.user_type == 'placement_officer':
+                if not hasattr(user, 'placement_officer_profile'):
+                    return redirect('create_placement_officer_profile')
+                elif not user.placement_officer_profile.is_approved:
+                    messages.warning(request, 'Your account is pending approval. Please wait for admin approval.')
+                    return redirect('home')
+                return redirect('placement_officer_dashboard')
+            return redirect('home')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'users/login.html', {'form': form})
+
+@login_required
+def create_placement_officer_profile(request):
+    # Check if user is a placement officer
+    if request.user.user_type != 'placement_officer':
+        messages.error(request, 'Only placement officers can create placement officer profiles.')
+        return redirect('home')
+    
+    # Check if profile already exists
+    try:
+        existing_profile = PlacementOfficer.objects.get(user=request.user)
+        messages.info(request, 'You already have a profile. You can update it instead.')
+        return redirect('update_profile')
+    except PlacementOfficer.DoesNotExist:
+        pass
+    
+    if request.method == 'POST':
+        form = PlacementOfficerProfileForm(request.POST)
+        if form.is_valid():
+            try:
+                profile = form.save(commit=False)
+                profile.user = request.user
+                profile.save()
+                messages.success(request, 'Your profile has been created successfully!')
+                return redirect('placement_officer_dashboard')
+            except Exception as e:
+                messages.error(request, f'An error occurred while creating your profile: {str(e)}')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PlacementOfficerProfileForm()
+    
+    context = {
+        'form': form,
+        'colleges': College.objects.filter(is_active=True),
+    }
+    return render(request, 'users/placement_officer/create_profile.html', context)
+
+@staff_member_required
+def admin_dashboard(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    # Get total counts
+    total_students = StudentProfile.objects.count()
+    total_jobs = Job.objects.count()
+    total_applications = JobApplication.objects.count()
+    total_employers = EmployerProfile.objects.count()
+    
+    # Get latest job posts
+    latest_jobs = Job.objects.select_related('employer').order_by('-created_at')[:5]
+    
+    # Get registration trends (last 7 days)
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    
+    student_registrations = User.objects.filter(
+        user_type='student',
+        date_joined__gte=week_ago
+    ).annotate(
+        date=TruncDate('date_joined')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+    
+    employer_registrations = User.objects.filter(
+        user_type='employer',
+        date_joined__gte=week_ago
+    ).annotate(
+        date=TruncDate('date_joined')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+    
+    # Get activity heatmap data (last 30 days)
+    thirty_days_ago = today - timedelta(days=30)
+    daily_activity = JobApplication.objects.filter(
+        applied_date__gte=thirty_days_ago
+    ).annotate(
+        date=TruncDate('applied_date')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+    
+    context = {
+        'total_students': total_students,
+        'total_jobs': total_jobs,
+        'total_applications': total_applications,
+        'total_employers': total_employers,
+        'latest_jobs': latest_jobs,
+        'student_registrations': list(student_registrations),
+        'employer_registrations': list(employer_registrations),
+        'daily_activity': list(daily_activity),
+    }
+    return render(request, 'users/admin/dashboard.html', context)
+
+@staff_member_required
+def student_management(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    students = StudentProfile.objects.select_related('user', 'college', 'course')
+    
+    # Search and filter
+    search_query = request.GET.get('search')
+    college_id = request.GET.get('college')
+    course_id = request.GET.get('course')
+    specialization = request.GET.get('specialization')
+    location = request.GET.get('location')
+    
+    if search_query:
+        students = students.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(roll_number__icontains=search_query)
+        )
+    
+    if college_id:
+        students = students.filter(college_id=college_id)
+    if course_id:
+        students = students.filter(course_id=course_id)
+    if specialization:
+        students = students.filter(course__specialization__icontains=specialization)
+    if location:
+        students = students.filter(college__location__icontains=location)
+    
+    context = {
+        'students': students,
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+    }
+    return render(request, 'users/admin/student_management.html', context)
+
+@staff_member_required
+def admin_student_detail(request, student_id):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+    
+    try:
+        student = get_object_or_404(StudentProfile, id=student_id)
+        applications = student.job_applications.all()
+        projects = student.projects.all()
+        academic_records = student.academic_records.all()
+        contests = student.contests.all()
+        
+        # Calculate statistics
+        academic_performance = student.get_academic_performance()
+        project_stats = student.get_project_stats()
+        contest_stats = student.get_contest_stats()
+        job_stats = student.get_job_stats()
+        
+        context = {
+            'student': student,
+            'applications': applications,
+            'projects': projects,
+            'academic_records': academic_records,
+            'contests': contests,
+            'academic_performance': academic_performance,
+            'project_stats': project_stats,
+            'contest_stats': contest_stats,
+            'job_stats': job_stats,
+        }
+        return render(request, 'users/admin/student_detail.html', context)
+    except Exception as e:
+        messages.error(request, f'Error accessing student details: {str(e)}')
+        return redirect('student_management')
+
+@staff_member_required
+def employer_management(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    employers = EmployerProfile.objects.select_related('user')
+    
+    # Search functionality
+    search_query = request.GET.get('search')
+    if search_query:
+        employers = employers.filter(
+            Q(company_name__icontains=search_query) |
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query)
+        )
+    
+    # Filter by verification status
+    verification_status = request.GET.get('verification_status')
+    if verification_status == 'verified':
+        employers = employers.filter(is_verified=True)
+    elif verification_status == 'pending':
+        employers = employers.filter(is_verified=False)
+    
+    # Get all jobs for statistics
+    jobs = Job.objects.select_related('employer').all()
+    
+    context = {
+        'employers': employers,
+        'jobs': jobs,
+    }
+    return render(request, 'users/admin/employer_management.html', context)
+
+@staff_member_required
+def toggle_user_status(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    user.is_active = not user.is_active
+    user.save()
+    
+    status = "activated" if user.is_active else "suspended"
+    messages.success(request, f'User {user.get_full_name()} has been {status}.')
+    
+    if user.user_type == 'student':
+        return redirect('student_management')
+    elif user.user_type == 'employer':
+        return redirect('employer_management')
+    return redirect('admin_dashboard')
+
+@staff_member_required
+def master_config(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    context = {
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+        'skills': Skill.objects.all(),
+        'templates': ResumeTemplate.objects.all(),
+    }
+    return render(request, 'users/admin/master_config.html', context)
+
+@staff_member_required
+def communication_panel(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+        recipient_type = request.POST.get('recipient_type')
+        notification_type = request.POST.get('notification_type')
+        
+        if recipient_type == 'all':
+            recipients = User.objects.filter(is_active=True)
+        elif recipient_type == 'students':
+            recipients = User.objects.filter(user_type='student', is_active=True)
+        elif recipient_type == 'employers':
+            recipients = User.objects.filter(user_type='employer', is_active=True)
+        
+        # Send email
+        for recipient in recipients:
+            html_message = render_to_string('users/email_notification.html', {
+                'user': recipient,
+                'message': message,
+                'notification_type': notification_type
+            })
+            plain_message = strip_tags(html_message)
+            
+            send_mail(
+                subject,
+                plain_message,
+                settings.DEFAULT_FROM_EMAIL,
+                [recipient.email],
+                html_message=html_message,
+                fail_silently=True
+            )
+            
+            # Create notification
+            Notification.objects.create(
+                user=recipient,
+                title=subject,
+                message=message,
+                notification_type=notification_type
+            )
+        
+        messages.success(request, f'Message sent to {recipients.count()} recipients.')
+        return redirect('communication_panel')
+    
+    # Get announcements
+    announcements = Announcement.objects.all()
+    
+    # Get recent notifications
+    notifications = Notification.objects.all().order_by('-created_at')[:10]
+    
+    context = {
+        'announcements': announcements,
+        'notifications': notifications,
+        'announcement_form': AnnouncementForm(),
+    }
+    
+    return render(request, 'users/admin/communication_panel.html', context)
+
+def resend_verification_email(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_email_verified:
+                # Generate new token
+                user.generate_email_verification_token()
+                user.save()
+                # Send new verification email
+                send_verification_email(request, user)
+                messages.success(request, 'A new verification email has been sent to your email address.')
+            else:
+                messages.info(request, 'Your email is already verified.')
+        except User.DoesNotExist:
+            messages.error(request, 'No account found with this email address.')
+    return render(request, 'users/resend_verification.html')
+
+@staff_member_required
+def employer_detail(request, employer_id):
+    employer = get_object_or_404(EmployerProfile, id=employer_id)
+    jobs = Job.objects.filter(employer=employer)
+    context = {
+        'employer': employer,
+        'jobs': jobs,
+    }
+    return render(request, 'users/admin/employer_detail.html', context)
+
+@staff_member_required
+def verify_employer(request, employer_id):
+    if request.method == 'POST':
+        try:
+            employer = get_object_or_404(EmployerProfile, id=employer_id)
+            employer.is_verified = True
+            employer.save()
+            
+            # Send notification to the employer
+            try:
+                send_notification(
+                    employer.user,
+                    'Account Verified',
+                    'Your employer account has been verified. You can now access all features.',
+                    'system'
+                )
+            except Exception as e:
+                # Log the notification error but don't fail the verification
+                print(f"Failed to send notification: {str(e)}")
+            
+            messages.success(request, f'Employer {employer.company_name} has been verified.')
+        except Exception as e:
+            messages.error(request, f'Error verifying employer: {str(e)}')
+    return redirect('employer_management')
+
+@staff_member_required
+def delete_employer(request, employer_id):
+    if request.method == 'POST':
+        try:
+            employer = get_object_or_404(EmployerProfile, id=employer_id)
+            company_name = employer.company_name
+            employer.user.delete()  # This will also delete the employer profile due to CASCADE
+            messages.success(request, f'Employer {company_name} has been deleted.')
+        except Exception as e:
+            messages.error(request, f'Error deleting employer: {str(e)}')
+    return redirect('employer_management')
+
+@staff_member_required
+def create_announcement(request):
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST)
+        if form.is_valid():
+            announcement = form.save(commit=False)
+            announcement.created_by = request.user
+            announcement.save()
+            messages.success(request, 'Announcement created successfully.')
+            return redirect('communication_panel')
+    else:
+        form = AnnouncementForm()
+    return render(request, 'users/admin/create_announcement.html', {'form': form})
+
+@staff_member_required
+def edit_announcement(request, announcement_id):
+    announcement = get_object_or_404(Announcement, id=announcement_id)
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST, instance=announcement)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Announcement updated successfully.')
+            return redirect('communication_panel')
+    else:
+        form = AnnouncementForm(instance=announcement)
+    return render(request, 'users/admin/edit_announcement.html', {'form': form, 'announcement': announcement})
+
+@staff_member_required
+def delete_announcement(request, announcement_id):
+    if request.method == 'POST':
+        announcement = get_object_or_404(Announcement, id=announcement_id)
+        announcement.delete()
+        messages.success(request, 'Announcement deleted successfully.')
+    return redirect('communication_panel')
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def edit_college(request, college_id):
+    college = get_object_or_404(College, id=college_id)
+    if request.method == 'POST':
+        form = CollegeForm(request.POST, instance=college)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'College updated successfully.')
+            return redirect('master_config')
+    else:
+        form = CollegeForm(instance=college)
+    context = {
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+        'skills': Skill.objects.all(),
+        'templates': ResumeTemplate.objects.all(),
+        'college_form': form
+    }
+    return render(request, 'users/admin/master_config.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def edit_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    if request.method == 'POST':
+        form = CourseForm(request.POST, instance=course)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Course updated successfully.')
+            # Refresh the course instance to get updated data
+            course.refresh_from_db()
+            form = CourseForm(instance=course)
+    else:
+        form = CourseForm(instance=course)
+    context = {
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+        'skills': Skill.objects.all(),
+        'templates': ResumeTemplate.objects.all(),
+        'course_form': form
+    }
+    return render(request, 'users/admin/master_config.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def edit_skill(request, skill_id):
+    skill = get_object_or_404(Skill, id=skill_id)
+    if request.method == 'POST':
+        form = SkillForm(request.POST, instance=skill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Skill updated successfully.')
+            # Refresh the skill instance to get updated data
+            skill.refresh_from_db()
+            form = SkillForm(instance=skill)
+    else:
+        form = SkillForm(instance=skill)
+    context = {
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+        'skills': Skill.objects.all(),
+        'templates': ResumeTemplate.objects.all(),
+        'skill_form': form
+    }
+    return render(request, 'users/admin/master_config.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def edit_template(request, template_id):
+    template = get_object_or_404(ResumeTemplate, id=template_id)
+    if request.method == 'POST':
+        form = ResumeTemplateForm(request.POST, request.FILES, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Resume template updated successfully.')
+            # Refresh the template instance to get updated data
+            template.refresh_from_db()
+            form = ResumeTemplateForm(instance=template)
+    else:
+        form = ResumeTemplateForm(instance=template)
+    context = {
+        'colleges': College.objects.all(),
+        'courses': Course.objects.all(),
+        'skills': Skill.objects.all(),
+        'templates': ResumeTemplate.objects.all(),
+        'template_form': form
+    }
+    return render(request, 'users/admin/master_config.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def add_college(request):
+    if request.method == 'POST':
+        form = CollegeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'College added successfully.')
+            return redirect('master_config')
+    else:
+        form = CollegeForm()
+    return render(request, 'users/admin/master_config.html', {'college_form': form})
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def add_course(request):
+    if request.method == 'POST':
+        form = CourseForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Course added successfully.')
+            return redirect('master_config')
+    else:
+        form = CourseForm()
+    return render(request, 'users/admin/master_config.html', {'course_form': form})
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def add_skill(request):
+    if request.method == 'POST':
+        form = SkillForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Skill added successfully.')
+            return redirect('master_config')
+    else:
+        form = SkillForm()
+    return render(request, 'users/admin/master_config.html', {'skill_form': form})
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def add_template(request):
+    if request.method == 'POST':
+        form = ResumeTemplateForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Resume template added successfully.')
+            return redirect('master_config')
+    else:
+        form = ResumeTemplateForm()
+    return render(request, 'users/admin/master_config.html', {'template_form': form})
+
+@staff_member_required
+def placement_officer_management(request):
+    # Check if user is verified
+    if not request.user.is_verified:
+        messages.warning(request, 'Please verify your email before accessing the admin dashboard.')
+        return redirect('home')
+        
+    officers = PlacementOfficer.objects.select_related('user', 'college').all()
+    
+    # Search and filter
+    search_query = request.GET.get('search')
+    college_id = request.GET.get('college')
+    approval_status = request.GET.get('approval_status')
+    
+    if search_query:
+        officers = officers.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(designation__icontains=search_query)
+        )
+    
+    if college_id:
+        officers = officers.filter(college_id=college_id)
+    if approval_status:
+        officers = officers.filter(is_approved=approval_status == 'approved')
+    
+    context = {
+        'officers': officers,
+        'colleges': College.objects.all(),
+    }
+    return render(request, 'users/admin/placement_officer_management.html', context)
+
+@staff_member_required
+def approve_placement_officer(request, officer_id):
+    if request.method == 'POST':
+        try:
+            officer = get_object_or_404(PlacementOfficer, id=officer_id)
+            officer.is_approved = True
+            officer.is_rejected = False
+            officer.save()
+            
+            # Send notification to the placement officer
+            try:
+                send_notification(
+                    officer.user,
+                    'Account Approved',
+                    'Your placement officer account has been approved. You can now access the dashboard.',
+                    'system'
+                )
+            except Exception as e:
+                # Log the notification error but don't fail the approval
+                print(f"Failed to send notification: {str(e)}")
+            
+            messages.success(request, f'Placement officer {officer.user.get_full_name()} has been approved.')
+        except Exception as e:
+            messages.error(request, f'Error approving placement officer: {str(e)}')
+    return redirect('placement_officer_management')
+
+@staff_member_required
+def reject_placement_officer(request, officer_id):
+    if request.method == 'POST':
+        try:
+            officer = get_object_or_404(PlacementOfficer, id=officer_id)
+            officer.is_approved = False
+            officer.is_rejected = True
+            officer.save()
+            
+            # Send notification to the placement officer
+            try:
+                send_notification(
+                    officer.user,
+                    'Account Rejected',
+                    'Your placement officer account has been rejected. Please contact the administrator for more information.',
+                    'system'
+                )
+            except Exception as e:
+                # Log the notification error but don't fail the rejection
+                print(f"Failed to send notification: {str(e)}")
+            
+            messages.success(request, f'Placement officer {officer.user.get_full_name()} has been rejected.')
+        except Exception as e:
+            messages.error(request, f'Error rejecting placement officer: {str(e)}')
+    return redirect('placement_officer_management')

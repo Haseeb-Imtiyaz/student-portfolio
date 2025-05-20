@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        .name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .contact-info {
+            font-size: 14px;
+            color: #666;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .item {
+            margin-bottom: 15px;
+        }
+        .item-title {
+            font-weight: bold;
+        }
+        .item-subtitle {
+            color: #666;
+            font-style: italic;
+        }
+        .item-date {
+            float: right;
+            color: #666;
+        }
+        .skills-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .skill {
+            background-color: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="name">{{ student_profile.user.get_full_name }}</div>
+        <div class="contact-info">
+            {{ student_profile.phone_number }} | {{ student_profile.user.email }}
+            {% if student_profile.linkedin_url %}
+            | <a href="{{ student_profile.linkedin_url }}">LinkedIn</a>
+            {% endif %}
+            {% if student_profile.github_url %}
+            | <a href="{{ student_profile.github_url }}">GitHub</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Education</div>
+        <div class="item">
+            <div class="item-title">{{ student_profile.course.name }}</div>
+            <div class="item-subtitle">{{ student_profile.college.name }}</div>
+            <div class="item-date">{{ student_profile.expected_graduation_year }}</div>
+            <div>CGPA: {{ academic_records.cgpa }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Skills</div>
+        <div class="skills-list">
+            {% for skill in student_skills %}
+            <div class="skill">{{ skill.skill.name }}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Projects</div>
+        {% for project in projects %}
+        <div class="item">
+            <div class="item-title">{{ project.title }}</div>
+            <div class="item-subtitle">{{ project.role }} | Team Size: {{ project.team_size }}</div>
+            <div>{{ project.description }}</div>
+            <div>Technologies: {{ project.tools_technologies }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">Contests & Achievements</div>
+        {% for contest in contests %}
+        <div class="item">
+            <div class="item-title">{{ contest.event_name }}</div>
+            <div class="item-subtitle">{{ contest.organized_by }}</div>
+            <div class="item-date">{{ contest.date_of_participation }}</div>
+            <div>Outcome: {{ contest.get_outcome_display }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html> 
