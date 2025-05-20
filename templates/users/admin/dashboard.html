@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Admin Dashboard</h1>
+        <div class="text-muted">Welcome, {{ request.user.get_full_name }}</div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Students</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Jobs</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_jobs }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Applications</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_applications }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Employers</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_employers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-building fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Cards -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-graduate me-2"></i>
+                        Student Management
+                    </h5>
+                    <p class="card-text text-muted">Manage student profiles, view statistics, and track progress.</p>
+                    <a href="{% url 'student_management' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Manage Students
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-building me-2"></i>
+                        Employer Management
+                    </h5>
+                    <p class="card-text text-muted">Manage employer accounts, verify companies, and monitor job postings.</p>
+                    <a href="{% url 'employer_management' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Manage Employers
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-tie me-2"></i>
+                        Placement Officer Management
+                    </h5>
+                    <p class="card-text text-muted">Approve placement officers and manage their access.</p>
+                    <a href="{% url 'placement_officer_management' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Manage Officers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Management Cards -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-cogs me-2"></i>
+                        Master Configuration
+                    </h5>
+                    <p class="card-text text-muted">Manage colleges, courses, skills, and resume templates.</p>
+                    <a href="{% url 'master_config' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Configure
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-bullhorn me-2"></i>
+                        Communication Panel
+                    </h5>
+                    <p class="card-text text-muted">Send announcements and manage notifications.</p>
+                    <a href="{% url 'communication_panel' %}" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>
+                        Manage Communications
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<!-- Custom CSS -->
+<style>
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .card {
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .text-gray-300 {
+        color: #dddfeb !important;
+    }
+    .text-gray-800 {
+        color: #5a5c69 !important;
+    }
+</style>
+{% endblock %} 

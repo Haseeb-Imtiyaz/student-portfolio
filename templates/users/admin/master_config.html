@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Master Configuration{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Master Configuration</h1>
+    
+    <div class="row">
+        <!-- Colleges -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Colleges</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCollegeModal" data-bs-backdrop="false">
+                        Add College
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for college in colleges %}
+                                <tr>
+                                    <td>{{ college.name }}</td>
+                                    <td>{{ college.location }}</td>
+                                    <td>
+                                        <span class="badge {% if college.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ college.is_active|yesno:"Active,Inactive" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editCollegeModal{{ college.id }}" data-bs-backdrop="false">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Courses -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Courses</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCourseModal" data-bs-backdrop="false">
+                        Add Course
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>College</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                <tr>
+                                    <td>{{ course.name }}</td>
+                                    <td>{{ course.college.name }}</td>
+                                    <td>{{ course.duration }} years</td>
+                                    <td>
+                                        <span class="badge {% if course.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ course.is_active|yesno:"Active,Inactive" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editCourseModal{{ course.id }}" data-bs-backdrop="false">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Skills -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Skills</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSkillModal" data-bs-backdrop="false">
+                        Add Skill
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skill in skills %}
+                                <tr>
+                                    <td>{{ skill.name }}</td>
+                                    <td>{{ skill.category }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editSkillModal{{ skill.id }}" data-bs-backdrop="false">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resume Templates -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Resume Templates</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTemplateModal" data-bs-backdrop="false">
+                        Add Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for template in templates %}
+                                <tr>
+                                    <td>{{ template.name }}</td>
+                                    <td>
+                                        <span class="badge {% if template.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ template.is_active|yesno:"Active,Inactive" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editTemplateModal{{ template.id }}" data-bs-backdrop="false">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add College Modal -->
+<div class="modal fade" id="addCollegeModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add College</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'add_college' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ college_form|crispy }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add College</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit College Modals -->
+{% for college in colleges %}
+<div class="modal fade" id="editCollegeModal{{ college.id }}" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit College</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'edit_college' college.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if college_form and college_form.instance.id == college.id %}
+                        {{ college_form|crispy }}
+                    {% else %}
+                        <div class="mb-3">
+                            <label for="id_name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="id_name" name="name" value="{{ college.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="id_location" name="location" value="{{ college.location }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_website" class="form-label">Website</label>
+                            <input type="url" class="form-control" id="id_website" name="website" value="{{ college.website }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_contact_email" class="form-label">Contact Email</label>
+                            <input type="email" class="form-control" id="id_contact_email" name="contact_email" value="{{ college.contact_email }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_contact_phone" class="form-label">Contact Phone</label>
+                            <input type="text" class="form-control" id="id_contact_phone" name="contact_phone" value="{{ college.contact_phone }}" required>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Add Course Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'add_course' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ course_form|crispy }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Course Modals -->
+{% for course in courses %}
+<div class="modal fade" id="editCourseModal{{ course.id }}" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Course</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'edit_course' course.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="id_name" name="name" value="{{ course.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_college" class="form-label">College</label>
+                        <select class="form-select" id="id_college" name="college" required>
+                            {% for college in colleges %}
+                            <option value="{{ college.id }}" {% if college.id == course.college.id %}selected{% endif %}>{{ college.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Add Skill Modal -->
+<div class="modal fade" id="addSkillModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'add_skill' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ skill_form|crispy }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Skill Modals -->
+{% for skill in skills %}
+<div class="modal fade" id="editSkillModal{{ skill.id }}" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'edit_skill' skill.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="id_name" name="name" value="{{ skill.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_category" class="form-label">Category</label>
+                        <select class="form-select" id="id_category" name="category" required>
+                            <option value="technical" {% if skill.category == 'technical' %}selected{% endif %}>Technical</option>
+                            <option value="soft" {% if skill.category == 'soft' %}selected{% endif %}>Soft Skills</option>
+                            <option value="language" {% if skill.category == 'language' %}selected{% endif %}>Language</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Add Template Modal -->
+<div class="modal fade" id="addTemplateModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Resume Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'add_template' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ template_form|crispy }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Template Modals -->
+{% for template in templates %}
+<div class="modal fade" id="editTemplateModal{{ template.id }}" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'edit_template' template.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="id_name" name="name" value="{{ template.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="3">{{ template.description }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_file" class="form-label">Template File</label>
+                        <input type="file" class="form-control" id="id_file" name="file">
+                        <small class="text-muted">Current file: {{ template.file.name }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all modals with no backdrop
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+        new bootstrap.Modal(modal, {
+            backdrop: false
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Student Details - {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{% url 'student_management' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Student Management
+        </a>
+    </div>
+
+    <!-- Student Profile Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 text-center">
+                    {% if student.profile_picture %}
+                        <img src="{{ student.profile_picture.url }}" alt="Profile Picture" class="img-fluid rounded-circle mb-3" style="max-width: 200px;">
+                    {% else %}
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 200px; height: 200px; margin: 0 auto;">
+                            <i class="fas fa-user fa-4x text-muted"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-9">
+                    <h2 class="mb-3">{{ student.user.get_full_name }}</h2>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> {{ student.user.email }}</p>
+                            <p><strong>Roll Number:</strong> {{ student.roll_number }}</p>
+                            <p><strong>College:</strong> {{ student.college.name }}</p>
+                            <p><strong>Course:</strong> {{ student.course.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Year of Study:</strong> {{ student.year_of_study }}</p>
+                            <p><strong>Semester:</strong> {{ student.semester }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge {% if student.user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ student.user.is_active|yesno:"Active,Suspended" }}
+                                </span>
+                            </p>
+                            <p><strong>Profile Completion:</strong> {{ student.profile_completion }}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Academic Performance</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ academic_performance }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Projects</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ project_stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-project-diagram fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Job Applications</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ job_stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Contests</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ contest_stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-trophy fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Records -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Academic Records</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Semester</th>
+                            <th>Subject</th>
+                            <th>Marks Obtained</th>
+                            <th>Max Marks</th>
+                            <th>Institution</th>
+                            <th>Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in academic_records %}
+                        <tr>
+                            <td>{{ record.semester }}</td>
+                            <td>{{ record.subject_name }}</td>
+                            <td>{{ record.marks_obtained }}</td>
+                            <td>{{ record.max_marks }}</td>
+                            <td>{{ record.institution }}</td>
+                            <td>{{ record.year_of_completion }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No academic records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Projects</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Technologies</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects %}
+                        <tr>
+                            <td>{{ project.title }}</td>
+                            <td>{{ project.get_project_type_display }}</td>
+                            <td>{{ project.technologies }}</td>
+                            <td>{{ project.start_date }} - {{ project.end_date|default:"Ongoing" }}</td>
+                            <td>
+                                {% if project.end_date %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Ongoing</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No projects found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Applications -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Job Applications</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Company</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr>
+                            <td>{{ application.job.title }}</td>
+                            <td>{{ application.job.employer.company_name }}</td>
+                            <td>{{ application.applied_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge {% if application.status == 'hired' %}bg-success{% elif application.status == 'rejected' %}bg-danger{% elif application.status == 'shortlisted' %}bg-info{% elif application.status == 'under_review' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ application.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No job applications found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contests -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Contests</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th>Category</th>
+                            <th>Organized By</th>
+                            <th>Date</th>
+                            <th>Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contest in contests %}
+                        <tr>
+                            <td>{{ contest.event_name }}</td>
+                            <td>{{ contest.get_category_display }}</td>
+                            <td>{{ contest.organized_by }}</td>
+                            <td>{{ contest.date_of_participation|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge {% if contest.outcome == 'winner' %}bg-success{% elif contest.outcome == 'runner_up' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ contest.get_outcome_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No contests found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

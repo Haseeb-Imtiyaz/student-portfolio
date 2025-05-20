@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Placement Officer Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Placement Officer Management</h1>
+    
+    <!-- Search and Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="Search by name or designation" value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="college" class="form-select">
+                        <option value="">All Colleges</option>
+                        {% for college in colleges %}
+                        <option value="{{ college.id }}" {% if request.GET.college == college.id|stringformat:"i" %}selected{% endif %}>
+                            {{ college.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="approval_status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="approved" {% if request.GET.approval_status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if request.GET.approval_status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="pending" {% if request.GET.approval_status == 'pending' %}selected{% endif %}>Pending</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Placement Officers List -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>College</th>
+                            <th>Designation</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for officer in officers %}
+                        <tr>
+                            <td>{{ officer.user.get_full_name }}</td>
+                            <td>{{ officer.college.name }}</td>
+                            <td>{{ officer.designation }}</td>
+                            <td>{{ officer.phone_number }}</td>
+                            <td>
+                                {% if officer.is_approved %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                    {% if officer.is_rejected %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not officer.is_approved %}
+                                <form method="post" action="{% url 'approve_placement_officer' officer.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                <form method="post" action="{% url 'reject_placement_officer' officer.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{% url 'reject_placement_officer' officer.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-sm">Revoke</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No placement officers found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

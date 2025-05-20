@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Employer Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Employer Details</h1>
+        <div>
+            <a href="{% url 'employer_management' %}" class="btn btn-secondary">Back to List</a>
+            {% if not employer.is_verified %}
+            <form method="post" action="{% url 'admin_verify_employer' employer.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Verify Employer</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'admin_delete_employer' employer.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this employer?')">
+                    Delete Employer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Employer Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Company Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">Company Name</dt>
+                        <dd class="col-sm-8">{{ employer.company_name }}</dd>
+
+                        <dt class="col-sm-4">Industry</dt>
+                        <dd class="col-sm-8">{{ employer.industry }}</dd>
+
+                        <dt class="col-sm-4">Location</dt>
+                        <dd class="col-sm-8">{{ employer.location }}</dd>
+
+                        <dt class="col-sm-4">Company Size</dt>
+                        <dd class="col-sm-8">{{ employer.get_company_size_display }}</dd>
+
+                        <dt class="col-sm-4">Website</dt>
+                        <dd class="col-sm-8">
+                            <a href="{{ employer.website }}" target="_blank">{{ employer.website }}</a>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">Contact Person</dt>
+                        <dd class="col-sm-8">{{ employer.contact_person }}</dd>
+
+                        <dt class="col-sm-4">Email</dt>
+                        <dd class="col-sm-8">{{ employer.user.email }}</dd>
+
+                        <dt class="col-sm-4">Phone</dt>
+                        <dd class="col-sm-8">{{ employer.phone_number }}</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge {% if employer.is_verified %}bg-success{% else %}bg-warning{% endif %}">
+                                {{ employer.is_verified|yesno:"Verified,Pending" }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Joined Date</dt>
+                        <dd class="col-sm-8">{{ employer.user.date_joined|date:"M d, Y" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Listings -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Job Listings</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Location</th>
+                            <th>Posted Date</th>
+                            <th>Applications</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr>
+                            <td>{{ job.title }}</td>
+                            <td>{{ job.get_job_type_display }}</td>
+                            <td>{{ job.location }}</td>
+                            <td>{{ job.created_at|date:"M d, Y" }}</td>
+                            <td>{{ job.applications.count }}</td>
+                            <td>
+                                <span class="badge {% if job.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ job.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No job listings found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

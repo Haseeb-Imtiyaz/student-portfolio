@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Student Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Student Management</h1>
+    
+    <!-- Search and Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="Search by name or roll number" value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-2">
+                    <select name="college" class="form-select">
+                        <option value="">All Colleges</option>
+                        {% for college in colleges %}
+                        <option value="{{ college.id }}" {% if request.GET.college == college.id|stringformat:"i" %}selected{% endif %}>
+                            {{ college.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="course" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if request.GET.course == course.id|stringformat:"i" %}selected{% endif %}>
+                            {{ course.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="specialization" class="form-control" placeholder="Specialization" value="{{ request.GET.specialization }}">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="location" class="form-control" placeholder="Location" value="{{ request.GET.location }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <a href="{% url 'student_management' %}" class="btn btn-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Roll Number</th>
+                            <th>College</th>
+                            <th>Course</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.user.get_full_name }}</td>
+                            <td>{{ student.roll_number }}</td>
+                            <td>{{ student.college.name }}</td>
+                            <td>{{ student.course.name }}</td>
+                            <td>{{ student.user.email }}</td>
+                            <td>
+                                <span class="badge {% if student.user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ student.user.is_active|yesno:"Active,Suspended" }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'admin_student_detail' student.id %}" class="btn btn-sm btn-info">View</a>
+                                    <a href="{% url 'toggle_user_status' student.user.id %}" class="btn btn-sm {% if student.user.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                                        {{ student.user.is_active|yesno:"Suspend,Activate" }}
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No students found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
