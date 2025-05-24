@@ -81,7 +81,7 @@
                                     </a>
                                     {% if is_employer %}
                                         <div>
-                                            <a href="{% url 'employer_job_applications' job.id %}" class="btn btn-outline-info">
+                                            <a href="{% url 'employer_job_applications_detail' job.id %}" class="btn btn-outline-info">
                                                 <i class="fas fa-users"></i> View Applications
                                             </a>
                                             <a href="{% url 'delete_job' job.id %}" class="btn btn-outline-danger">

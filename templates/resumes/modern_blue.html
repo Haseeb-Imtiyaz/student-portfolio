@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <title>{{ resume.title }}</title>
     <style>
-        body { font-family: 'Calibri', Arial, sans-serif; color: #333; background: #fff; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 2.2em; color: #2c3e50; }
-        .contact { margin: 10px 0; font-size: 1.1em; }
-        .section { margin-bottom: 20px; }
-        .section-title { color: #2c3e50; border-bottom: 2px solid #eee; margin-bottom: 10px; font-size: 1.2em; }
-        .skills-list { margin: 0; padding: 0; list-style: none; }
-        .skills-list li { display: inline-block; margin-right: 15px; }
-        .project-item, .academic-item, .contest-item { margin-bottom: 15px; }
-        .date { color: #666; font-size: 0.95em; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f8fb; color: #222; }
+        .header { background: #1976d2; color: #fff; padding: 30px 20px 10px 20px; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 2.5em; }
+        .contact { margin-top: 10px; font-size: 1.1em; }
+        .section { background: #fff; margin: 0 0 20px 0; padding: 20px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 8px #e3eaf1; }
+        .section-title { color: #1976d2; border-bottom: 2px solid #e3eaf1; margin-bottom: 10px; font-size: 1.3em; }
+        .skills-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .skill-item { background: #e3eaf1; padding: 5px 12px; border-radius: 20px; }
+        .project-item, .academic-item, .contest-item { margin-bottom: 12px; }
+        .date { color: #888; font-size: 0.95em; }
         .education-info { margin: 10px 0; }
     </style>
 </head>
@@ -22,22 +22,24 @@
         <h1>{{ student.user.get_full_name }}</h1>
         <div class="contact">
             {{ student.user.email }} | {{ student.phone_number }}<br>
-            {{ student.college.name }} | {{ student.course.name }}
+            {{ student.college.name }} | {{ student.course.name }}<br>
+            {% if student.linkedin_url %} LinkedIn: {{ student.linkedin_url }}<br>{% endif %}
+            {% if student.github_url %} GitHub: {{ student.github_url }}{% endif %}
         </div>
     </div>
-    {% if resume.objective %}
     <div class="section">
+        {% if resume.objective %}
         <div class="section-title">Objective</div>
         <div>{{ resume.objective }}</div>
+        {% endif %}
     </div>
-    {% endif %}
     <div class="section">
         <div class="section-title">Skills</div>
-        <ul class="skills-list">
+        <div class="skills-list">
             {% for skill in skills %}
-            <li>{{ skill }}</li>
+            <span class="skill-item">{{ skill }}</span>
             {% endfor %}
-        </ul>
+        </div>
     </div>
     <div class="section">
         <div class="section-title">Education</div>

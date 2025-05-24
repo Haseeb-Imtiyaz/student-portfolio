@@ -39,7 +39,6 @@ urlpatterns = [
     path('admin/verify-employer/<int:employer_id>/', views.verify_employer, name='admin_verify_employer'),
     path('admin/delete-employer/<int:employer_id>/', views.delete_employer, name='admin_delete_employer'),
     path('admin/create-announcement/', views.create_announcement, name='admin_create_announcement'),
-    path('admin/edit-announcement/<int:announcement_id>/', views.edit_announcement, name='admin_edit_announcement'),
     path('admin/delete-announcement/<int:announcement_id>/', views.delete_announcement, name='admin_delete_announcement'),
     
     # Academic Records URLs
@@ -68,7 +67,8 @@ urlpatterns = [
     
     # Job Application URLs
     path('applications/', views.job_applications, name='job_applications'),
-    path('applications/<int:job_id>/', views.employer_job_applications, name='employer_job_applications'),
+    path('applications/all/', views.employer_job_applications, name='employer_job_applications'),
+    path('applications/job/<int:job_id>/', views.employer_job_applications, name='employer_job_applications_detail'),
     path('applications/<int:application_id>/update-status/', views.update_application_status, name='update_application_status'),
     
     # Resume URLs
@@ -76,10 +76,17 @@ urlpatterns = [
     path('resume/generate/', views.generate_resume, name='generate_resume'),
     path('resume/generate/<int:template_id>/', views.generate_resume, name='generate_resume_with_template'),
     path('resume/download/', views.download_resume, name='download_resume'),
+    path('resume/builder/', views.resume_builder, name='resume_builder'),
+    path('resume/preview/<int:resume_id>/', views.resume_preview, name='resume_preview'),
+    path('resume/download/<int:resume_id>/', views.download_resume, name='download_resume'),
     
     # Notification URLs
     path('notifications/', views.notifications, name='notifications'),
     path('notifications/settings/', views.notification_settings, name='notification_settings'),
+    path('notifications/<int:notification_id>/mark-read/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
+    path('notifications/delete-all/', views.delete_all_notifications, name='delete_all_notifications'),
+    path('notifications/delete-marked/', views.delete_marked_notifications, name='delete_marked_notifications'),
     
     # Password Reset URLs
     path('password-reset/',

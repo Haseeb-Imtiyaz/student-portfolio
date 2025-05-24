@@ -29,8 +29,8 @@
                     <h2 class="mb-3">{{ student.user.get_full_name }}</h2>
                     <div class="row">
                         <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
                             <p><strong>Email:</strong> {{ student.user.email }}</p>
-                            <p><strong>Roll Number:</strong> {{ student.roll_number }}</p>
                             <p><strong>College:</strong> {{ student.college.name }}</p>
                             <p><strong>Course:</strong> {{ student.course.name }}</p>
                         </div>

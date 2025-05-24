@@ -59,12 +59,9 @@
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Roll Number</th>
-                            <th>Department</th>
-                            <th>Semester</th>
-                            <th>Profile Status</th>
-                            <th>Resume Status</th>
-                            <th>Applications</th>
+                            <th>Email</th>
+                            <th>College</th>
+                            <th>Course</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -72,28 +69,11 @@
                         {% for student in students %}
                         <tr>
                             <td>{{ student.user.get_full_name }}</td>
-                            <td>{{ student.roll_number }}</td>
+                            <td>{{ student.user.email }}</td>
+                            <td>{{ student.college.name }}</td>
                             <td>{{ student.course.name }}</td>
-                            <td>{{ student.semester }}</td>
                             <td>
-                                {% if student.profile_picture and student.bio and student.linkedin_url %}
-                                <span class="badge bg-success">Complete</span>
-                                {% else %}
-                                <span class="badge bg-warning">Incomplete</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if student.has_resume %}
-                                <span class="badge bg-success">Uploaded</span>
-                                {% else %}
-                                <span class="badge bg-warning">Not Uploaded</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ student.job_applications.count }}</td>
-                            <td>
-                                <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-primary">
-                                    View Details
-                                </a>
+                                <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-primary">View</a>
                             </td>
                         </tr>
                         {% empty %}

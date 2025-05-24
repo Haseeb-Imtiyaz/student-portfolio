@@ -15,10 +15,10 @@ from .models import (
     StudentProfile, EmployerProfile, AcademicRecord, Project, Contest,
     Job, JobApplication, Skill, StudentSkill, ResumeTemplate,
     Notification, College, Course, PlacementOfficer, JobBookmark,
-    ProjectFile, User, Announcement
+    ProjectFile, User, Announcement, StudentResume
 )
 from django.utils import timezone
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from reportlab.pdfgen import canvas
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from reportlab.lib.pagesizes import letter
@@ -43,6 +43,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from datetime import timedelta
 from django.contrib.admin.views.decorators import staff_member_required
+from weasyprint import HTML
 
 def register(request):
     if request.method == 'POST':
@@ -595,7 +596,7 @@ def generate_resume(request, template_id=None):
         template = get_object_or_404(ResumeTemplate, id=template_id)
         
         # Get all required data
-        academic_records = student_profile.academic_records.all()
+        academic_records = student_profile.academic_records.all().order_by('semester')
         projects = student_profile.projects.all()
         contests = student_profile.contests.all()
         student_skills = student_profile.skills.all()
@@ -603,16 +604,37 @@ def generate_resume(request, template_id=None):
         # Calculate CGPA
         cgpa = AcademicRecord.calculate_cgpa(student_profile)
         
+        # Format academic records by semester
+        formatted_records = {}
+        for record in academic_records:
+            if record.semester not in formatted_records:
+                formatted_records[record.semester] = []
+            formatted_records[record.semester].append({
+                'subject': record.subject_name,
+                'marks': f"{record.marks_obtained}/{record.max_marks}",
+                'year': record.year_of_completion,
+                'institution': record.institution
+            })
+        
         # Render the template with context
         context = {
-            'student_profile': student_profile,
-            'academic_records': {
-                'cgpa': cgpa,
-                'records': academic_records
+            'student': student_profile,
+            'resume': {
+                'title': f"{student_profile.user.get_full_name()}'s Resume",
+                'objective': student_profile.bio or "A motivated student seeking opportunities to apply and enhance my skills."
             },
+            'academic_records': formatted_records,
             'projects': projects,
             'contests': contests,
-            'student_skills': student_skills
+            'skills': [skill.skill.name for skill in student_skills],  # Extract just the skill names
+            'cgpa': cgpa,
+            'college': student_profile.college,
+            'course': student_profile.course,
+            'phone': student_profile.phone_number,
+            'email': student_profile.user.email,
+            'linkedin': student_profile.linkedin_url,
+            'github': student_profile.github_url,
+            'graduation_year': student_profile.expected_graduation_year
         }
         
         # Get the template path and remove any 'templates/' prefix
@@ -624,84 +646,13 @@ def generate_resume(request, template_id=None):
             # Render the template
             rendered_content = render_to_string(template_path, context)
             
-            # Create PDF using ReportLab
-            buffer = BytesIO()
-            doc = SimpleDocTemplate(buffer, pagesize=letter)
-            styles = getSampleStyleSheet()
-            
-            # Create custom styles
-            title_style = ParagraphStyle(
-                'Title',
-                parent=styles['Heading1'],
-                fontSize=24,
-                spaceAfter=30,
-                alignment=1  # Center alignment
-            )
-            
-            section_style = ParagraphStyle(
-                'Section',
-                parent=styles['Heading2'],
-                fontSize=18,
-                spaceAfter=20,
-                textColor=HexColor('#333333')
-            )
-            
-            # Create paragraphs with proper styling
-            paragraphs = []
-            
-            # Add header
-            paragraphs.append(Paragraph(student_profile.user.get_full_name(), title_style))
-            
-            # Add contact info
-            contact_info = f"{student_profile.phone_number} | {student_profile.user.email}"
-            if student_profile.linkedin_url:
-                contact_info += f" | LinkedIn: {student_profile.linkedin_url}"
-            if student_profile.github_url:
-                contact_info += f" | GitHub: {student_profile.github_url}"
-            paragraphs.append(Paragraph(contact_info, styles['Normal']))
-            paragraphs.append(Spacer(1, 30))
-            
-            # Add education section
-            paragraphs.append(Paragraph("Education", section_style))
-            education_info = f"{student_profile.course.name}<br/>{student_profile.college.name}<br/>Expected Graduation: {student_profile.expected_graduation_year}<br/>CGPA: {cgpa}"
-            paragraphs.append(Paragraph(education_info, styles['Normal']))
-            paragraphs.append(Spacer(1, 20))
-            
-            # Add skills section
-            if student_skills:
-                paragraphs.append(Paragraph("Skills", section_style))
-                skills_text = ", ".join([skill.skill.name for skill in student_skills])
-                paragraphs.append(Paragraph(skills_text, styles['Normal']))
-                paragraphs.append(Spacer(1, 20))
-            
-            # Add projects section
-            if projects:
-                paragraphs.append(Paragraph("Projects", section_style))
-                for project in projects:
-                    project_text = f"<b>{project.title}</b><br/>{project.role} | Team Size: {project.team_size}<br/>{project.description}<br/>Technologies: {project.tools_used}"
-                    paragraphs.append(Paragraph(project_text, styles['Normal']))
-                    paragraphs.append(Spacer(1, 10))
-                paragraphs.append(Spacer(1, 10))
-            
-            # Add contests section
-            if contests:
-                paragraphs.append(Paragraph("Contests & Achievements", section_style))
-                for contest in contests:
-                    contest_text = f"<b>{contest.event_name}</b><br/>{contest.organized_by}<br/>Date: {contest.date_of_participation}<br/>Outcome: {contest.get_outcome_display()}"
-                    paragraphs.append(Paragraph(contest_text, styles['Normal']))
-                    paragraphs.append(Spacer(1, 10))
-            
-            # Build the PDF
-            doc.build(paragraphs)
-            
-            # Get the PDF content
-            pdf_content = buffer.getvalue()
-            buffer.close()
+            # Create PDF using WeasyPrint
+            pdf = HTML(string=rendered_content).write_pdf()
             
             # Create a response with the PDF
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{student_profile.user.get_full_name()}_resume.pdf"'
-            response.write(pdf_content)
+            response.write(pdf)
             
             return response
             
@@ -741,9 +692,6 @@ def download_resume(request):
 
 @login_required
 def notifications(request):
-    if not hasattr(request.user, 'student_profile'):
-        return redirect('create_student_profile')
-    
     notifications = request.user.notifications.all().order_by('-created_at')
     unread_count = notifications.filter(is_read=False).count()
     
@@ -755,9 +703,6 @@ def notifications(request):
 
 @login_required
 def notification_settings(request):
-    if not hasattr(request.user, 'student_profile'):
-        return redirect('create_student_profile')
-    
     if request.method == 'POST':
         form = NotificationSettingsForm(request.POST, instance=request.user)
         if form.is_valid():
@@ -1119,10 +1064,27 @@ def employer_job_applications(request, job_id=None):
     # Get all jobs for the employer
     jobs = Job.objects.filter(employer=employer_profile)
     
+    # Filter by status if specified
+    status = request.GET.get('status')
+    if status:
+        applications = applications.filter(status=status)
+    
+    # Search functionality
+    search_query = request.GET.get('search')
+    if search_query:
+        applications = applications.filter(
+            Q(student__user__first_name__icontains=search_query) |
+            Q(student__user__last_name__icontains=search_query) |
+            Q(student__user__email__icontains=search_query) |
+            Q(job__title__icontains=search_query)
+        )
+    
     context = {
         'applications': applications,
         'jobs': jobs,
-        'selected_job': job
+        'selected_job': job,
+        'status': status,
+        'search_query': search_query
     }
     return render(request, 'users/employer_applications.html', context)
 
@@ -1146,7 +1108,7 @@ def update_application_status(request, application_id):
         else:
             messages.error(request, 'Invalid status selected.')
     
-    return redirect('employer_job_applications', job_id=application.job.id)
+    return redirect('employer_job_applications_detail', job_id=application.job.id)
 
 @login_required
 def delete_job(request, job_id):
@@ -1483,7 +1445,9 @@ def student_management(request):
         students = students.filter(
             Q(user__first_name__icontains=search_query) |
             Q(user__last_name__icontains=search_query) |
-            Q(roll_number__icontains=search_query)
+            Q(user__email__icontains=search_query) |
+            Q(college__name__icontains=search_query) |
+            Q(course__name__icontains=search_query)
         )
     
     if college_id:
@@ -1615,15 +1579,29 @@ def communication_panel(request):
         recipient_type = request.POST.get('recipient_type')
         notification_type = request.POST.get('notification_type')
         
-        if recipient_type == 'all':
-            recipients = User.objects.filter(is_active=True)
-        elif recipient_type == 'students':
-            recipients = User.objects.filter(user_type='student', is_active=True)
-        elif recipient_type == 'employers':
-            recipients = User.objects.filter(user_type='employer', is_active=True)
+        # Base query to exclude admin users
+        base_query = User.objects.filter(is_active=True).exclude(user_type='admin')
         
-        # Send email
+        # Get recipients based on type
+        if recipient_type == 'all':
+            recipients = base_query
+        elif recipient_type == 'students':
+            recipients = base_query.filter(user_type='student')
+        elif recipient_type == 'employers':
+            recipients = base_query.filter(user_type='employer')
+        
+        # Debug: Print recipient count and types
+        print(f"Number of recipients: {recipients.count()}")
+        print(f"Recipient types: {list(recipients.values_list('user_type', flat=True))}")
+        
+        # Send email and create notifications
+        notification_count = 0
         for recipient in recipients:
+            # Double check that this is not an admin
+            if recipient.user_type == 'admin':
+                print(f"Skipping admin user: {recipient.email}")
+                continue
+                
             html_message = render_to_string('users/email_notification.html', {
                 'user': recipient,
                 'message': message,
@@ -1647,15 +1625,31 @@ def communication_panel(request):
                 message=message,
                 notification_type=notification_type
             )
+            notification_count += 1
         
-        messages.success(request, f'Message sent to {recipients.count()} recipients.')
+        messages.success(request, f'Message sent to {notification_count} recipients.')
         return redirect('communication_panel')
     
     # Get announcements
     announcements = Announcement.objects.all()
     
-    # Get recent notifications
-    notifications = Notification.objects.all().order_by('-created_at')[:10]
+    # Get recent notifications - show only unique messages grouped by title and message
+    # Use subquery to get the latest notification for each unique message
+    from django.db.models import Max
+    latest_notifications = Notification.objects.values('title', 'message').annotate(
+        latest_created=Max('created_at')
+    ).order_by('-latest_created')[:10]
+
+    # Get the actual notification objects for these unique messages
+    notifications = []
+    for notification in latest_notifications:
+        latest = Notification.objects.filter(
+            title=notification['title'],
+            message=notification['message'],
+            created_at=notification['latest_created']
+        ).first()
+        if latest:
+            notifications.append(latest)
     
     context = {
         'announcements': announcements,
@@ -1738,24 +1732,58 @@ def create_announcement(request):
             announcement = form.save(commit=False)
             announcement.created_by = request.user
             announcement.save()
-            messages.success(request, 'Announcement created successfully.')
+            
+            # Get target users based on target_group, excluding admin users
+            base_query = User.objects.filter(is_active=True).exclude(user_type='admin')
+            
+            if announcement.target_group == 'all':
+                target_users = base_query
+            elif announcement.target_group == 'students':
+                target_users = base_query.filter(user_type='student')
+            elif announcement.target_group == 'employers':
+                target_users = base_query.filter(user_type='employer')
+            
+            # Create notifications for all target users
+            notification_count = 0
+            for user in target_users:
+                # Double check that this is not an admin
+                if user.user_type == 'admin':
+                    continue
+                    
+                Notification.objects.create(
+                    user=user,
+                    title=announcement.title,
+                    message=announcement.content,
+                    notification_type='system'
+                )
+                
+                # Send email if user has email notifications enabled
+                if user.email_notifications:
+                    try:
+                        html_message = render_to_string('users/email_notification.html', {
+                            'user': user,
+                            'message': announcement.content,
+                            'notification_type': 'system'
+                        })
+                        plain_message = strip_tags(html_message)
+                        
+                        send_mail(
+                            announcement.title,
+                            plain_message,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [user.email],
+                            html_message=html_message,
+                            fail_silently=True
+                        )
+                    except Exception as e:
+                        print(f"Failed to send email to {user.email}: {str(e)}")
+                notification_count += 1
+            
+            messages.success(request, f'Announcement created and sent to {notification_count} recipients.')
             return redirect('communication_panel')
     else:
         form = AnnouncementForm()
     return render(request, 'users/admin/create_announcement.html', {'form': form})
-
-@staff_member_required
-def edit_announcement(request, announcement_id):
-    announcement = get_object_or_404(Announcement, id=announcement_id)
-    if request.method == 'POST':
-        form = AnnouncementForm(request.POST, instance=announcement)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Announcement updated successfully.')
-            return redirect('communication_panel')
-    else:
-        form = AnnouncementForm(instance=announcement)
-    return render(request, 'users/admin/edit_announcement.html', {'form': form, 'announcement': announcement})
 
 @staff_member_required
 def delete_announcement(request, announcement_id):
@@ -1974,19 +2002,178 @@ def reject_placement_officer(request, officer_id):
             officer.is_rejected = True
             officer.save()
             
-            # Send notification to the placement officer
+            # Create notification for the placement officer
+            Notification.objects.create(
+                user=officer.user,
+                title='Account Rejected',
+                message='Your placement officer account has been rejected. Please contact the administrator for more information.',
+                notification_type='system'
+            )
+            
+            # Send email notification
             try:
-                send_notification(
-                    officer.user,
-                    'Account Rejected',
-                    'Your placement officer account has been rejected. Please contact the administrator for more information.',
-                    'system'
+                subject = 'Placement Officer Account Rejected'
+                message = 'Your placement officer account has been rejected. Please contact the administrator for more information.'
+                html_message = render_to_string('users/email_notification.html', {
+                    'user': officer.user,
+                    'title': subject,
+                    'message': message,
+                    'notification_type': 'system'
+                })
+                plain_message = strip_tags(html_message)
+                
+                send_mail(
+                    subject,
+                    plain_message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [officer.user.email],
+                    html_message=html_message,
+                    fail_silently=False
                 )
             except Exception as e:
-                # Log the notification error but don't fail the rejection
-                print(f"Failed to send notification: {str(e)}")
+                print(f"Failed to send email to {officer.user.email}: {str(e)}")
+                messages.warning(request, f'Email notification could not be sent: {str(e)}')
             
             messages.success(request, f'Placement officer {officer.user.get_full_name()} has been rejected.')
         except Exception as e:
             messages.error(request, f'Error rejecting placement officer: {str(e)}')
     return redirect('placement_officer_management')
+
+@login_required
+def mark_notification_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.mark_as_read()
+    return redirect('notifications')
+
+@login_required
+def delete_notification(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.delete()
+    messages.success(request, 'Notification deleted successfully.')
+    return redirect('notifications')
+
+@login_required
+def delete_all_notifications(request):
+    if request.method == 'POST' and request.POST.get('confirm_delete'):
+        try:
+            # Delete all notifications for the current user
+            Notification.objects.filter(user=request.user).delete()
+            messages.success(request, 'All notifications have been deleted successfully.')
+        except Exception as e:
+            messages.error(request, f'Error deleting notifications: {str(e)}')
+    return redirect('notifications')
+
+@login_required
+def delete_marked_notifications(request):
+    if request.method == 'POST':
+        notification_ids = request.POST.getlist('notification_ids')
+        if notification_ids:
+            Notification.objects.filter(id__in=notification_ids, user=request.user).delete()
+            messages.success(request, 'Selected notifications have been deleted.')
+    return redirect('notifications')
+
+def resume_builder(request):
+    if not request.user.is_authenticated or request.user.user_type != 'student':
+        return redirect('login')
+    
+    student = request.user.student_profile
+    templates = ResumeTemplate.objects.filter(is_active=True)
+    skills = Skill.objects.all()
+    projects = student.projects.all()
+    contests = student.contests.all()
+    academic_records = student.academic_records.all()
+    
+    if request.method == 'POST':
+        template_id = request.POST.get('template')
+        title = request.POST.get('title')
+        objective = request.POST.get('objective')
+        selected_skills = request.POST.getlist('skills')
+        selected_projects = request.POST.getlist('projects')
+        selected_contests = request.POST.getlist('contests')
+        selected_academic = request.POST.getlist('academic_records')
+        
+        template = ResumeTemplate.objects.get(id=template_id)
+        
+        # Create new resume
+        resume = StudentResume.objects.create(
+            student=student,
+            template=template,
+            title=title,
+            objective=objective
+        )
+        
+        # Add selected items
+        resume.skills.set(selected_skills)
+        resume.selected_projects.set(selected_projects)
+        resume.selected_contests.set(selected_contests)
+        resume.selected_academic_records.set(selected_academic)
+        
+        # Generate PDF
+        context = {
+            'student': student,
+            'resume': resume,
+            'skills': resume.skills.all(),
+            'projects': resume.selected_projects.all(),
+            'contests': resume.selected_contests.all(),
+            'academic_records': resume.selected_academic_records.all(),
+        }
+        
+        html_string = render_to_string(f'resumes/{template.template_path}', context)
+        pdf_file = HTML(string=html_string).write_pdf()
+        
+        # Save PDF
+        filename = f'resume_{student.user.username}_{resume.version}.pdf'
+        filepath = os.path.join(settings.MEDIA_ROOT, 'resumes/pdf', filename)
+        with open(filepath, 'wb') as f:
+            f.write(pdf_file)
+        
+        resume.pdf_file = f'resumes/pdf/{filename}'
+        resume.save()
+        
+        return redirect('resume_preview', resume_id=resume.id)
+    
+    context = {
+        'templates': templates,
+        'skills': skills,
+        'projects': projects,
+        'contests': contests,
+        'academic_records': academic_records,
+    }
+    return render(request, 'users/resume_builder.html', context)
+
+def resume_preview(request, resume_id):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    resume = StudentResume.objects.get(id=resume_id)
+    
+    # Check if user has permission to view this resume
+    if request.user.user_type == 'student' and resume.student.user != request.user:
+        return redirect('dashboard')
+    
+    context = {
+        'resume': resume,
+        'student': resume.student,
+        'skills': resume.skills.all(),
+        'projects': resume.selected_projects.all(),
+        'contests': resume.selected_contests.all(),
+        'academic_records': resume.selected_academic_records.all(),
+    }
+    return render(request, 'users/resume_preview.html', context)
+
+def download_resume(request, resume_id):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    
+    resume = StudentResume.objects.get(id=resume_id)
+    
+    # Check if user has permission to download this resume
+    if request.user.user_type == 'student' and resume.student.user != request.user:
+        return redirect('dashboard')
+    
+    if resume.pdf_file:
+        response = FileResponse(resume.pdf_file, as_attachment=True)
+        response['Content-Disposition'] = f'attachment; filename="{resume.title}.pdf"'
+        return response
+    
+    return redirect('resume_preview', resume_id=resume.id)

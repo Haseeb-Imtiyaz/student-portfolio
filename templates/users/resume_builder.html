@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Builder{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.css" rel="stylesheet" />
+<style>
+    .resume-section {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background: #f8f9fa;
+    }
+    .resume-section.dragging {
+        opacity: 0.5;
+    }
+    .resume-section .section-header {
+        cursor: move;
+        padding: 5px;
+        background: #e9ecef;
+        margin: -15px -15px 15px -15px;
+        border-radius: 5px 5px 0 0;
+    }
+    .template-preview {
+        border: 2px solid #ddd;
+        padding: 10px;
+        margin-bottom: 15px;
+        cursor: pointer;
+    }
+    .template-preview.selected {
+        border-color: #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Resume Builder</h1>
+    
+    <form method="post" id="resumeForm">
+        {% csrf_token %}
+        
+        <!-- Template Selection -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Choose Template</h5>
+                <div class="row">
+                    {% for template in templates %}
+                    <div class="col-md-4">
+                        <div class="template-preview" data-template-id="{{ template.id }}">
+                            <h6>{{ template.name }}</h6>
+                            <p class="text-muted">{{ template.description }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="template" id="selectedTemplate" required>
+            </div>
+        </div>
+        
+        <!-- Resume Title -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="title">Resume Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+                <div class="form-group mt-3">
+                    <label for="objective">Career Objective</label>
+                    <textarea class="form-control" id="objective" name="objective" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Drag & Drop Sections -->
+        <div id="resumeSections">
+            <!-- Personal Info (Non-draggable) -->
+            <div class="resume-section">
+                <div class="section-header">
+                    <h5>Personal Information</h5>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
+                        <p><strong>Email:</strong> {{ student.user.email }}</p>
+                        <p><strong>Phone:</strong> {{ student.phone_number }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>College:</strong> {{ student.college.name }}</p>
+                        <p><strong>Course:</strong> {{ student.course.name }}</p>
+                        <p><strong>Specialization:</strong> {{ student.specialization }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Skills -->
+            <div class="resume-section" data-section="skills">
+                <div class="section-header">
+                    <h5>Skills</h5>
+                </div>
+                <div class="form-group">
+                    <select class="form-control" name="skills" multiple>
+                        {% for skill in skills %}
+                        <option value="{{ skill.id }}">{{ skill.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Academic Records -->
+            <div class="resume-section" data-section="academic">
+                <div class="section-header">
+                    <h5>Academic Records</h5>
+                </div>
+                <div class="form-group">
+                    <select class="form-control" name="academic_records" multiple>
+                        {% for record in academic_records %}
+                        <option value="{{ record.id }}">
+                            {{ record.subject_name }} (Sem {{ record.semester }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Projects -->
+            <div class="resume-section" data-section="projects">
+                <div class="section-header">
+                    <h5>Projects</h5>
+                </div>
+                <div class="form-group">
+                    <select class="form-control" name="projects" multiple>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Contests -->
+            <div class="resume-section" data-section="contests">
+                <div class="section-header">
+                    <h5>Contests & Achievements</h5>
+                </div>
+                <div class="form-group">
+                    <select class="form-control" name="contests" multiple>
+                        {% for contest in contests %}
+                        <option value="{{ contest.id }}">{{ contest.event_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">Generate Resume</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+    // Initialize drag & drop
+    new Sortable(document.getElementById('resumeSections'), {
+        animation: 150,
+        handle: '.section-header',
+        ghostClass: 'dragging'
+    });
+    
+    // Template selection
+    document.querySelectorAll('.template-preview').forEach(template => {
+        template.addEventListener('click', function() {
+            document.querySelectorAll('.template-preview').forEach(t => t.classList.remove('selected'));
+            this.classList.add('selected');
+            document.getElementById('selectedTemplate').value = this.dataset.templateId;
+        });
+    });
+    
+    // Form validation
+    document.getElementById('resumeForm').addEventListener('submit', function(e) {
+        if (!document.getElementById('selectedTemplate').value) {
+            e.preventDefault();
+            alert('Please select a template');
+        }
+    });
+</script>
+{% endblock %} 

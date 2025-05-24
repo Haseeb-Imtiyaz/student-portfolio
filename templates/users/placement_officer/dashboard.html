@@ -10,7 +10,7 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <!-- Profile Completion Stats -->
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Profile Completion</h5>
@@ -26,25 +26,8 @@
             </div>
         </div>
 
-        <!-- Resume Stats -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Resume Upload Status</h5>
-                    <div class="progress mb-3">
-                        <div class="progress-bar" role="progressbar" style="width: {{ resume_stats.resume_percentage }}%">
-                            {{ resume_stats.resume_percentage|floatformat:1 }}%
-                        </div>
-                    </div>
-                    <p class="card-text">
-                        {{ resume_stats.students_with_resume }} of {{ resume_stats.total_students }} students have uploaded resumes
-                    </p>
-                </div>
-            </div>
-        </div>
-
         <!-- Application Stats -->
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Job Applications</h5>

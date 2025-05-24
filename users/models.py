@@ -470,6 +470,26 @@ class ResumeTemplate(models.Model):
     def __str__(self):
         return self.name
 
+class StudentResume(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='resumes')
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.SET_NULL, null=True)
+    title = models.CharField(max_length=100)
+    objective = models.TextField(blank=True)
+    skills = models.ManyToManyField('Skill', related_name='resume_skills')
+    selected_projects = models.ManyToManyField('Project', related_name='resume_projects')
+    selected_contests = models.ManyToManyField('Contest', related_name='resume_contests')
+    selected_academic_records = models.ManyToManyField('AcademicRecord', related_name='resume_academic_records')
+    version = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    pdf_file = models.FileField(upload_to='resumes/pdf/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.title} (v{self.version})"
+
+    class Meta:
+        ordering = ['-updated_at']
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200)
@@ -529,19 +549,22 @@ class PlacementOfficer(models.Model):
         return self.get_students().filter(job_applications__count__gte=min_applications).distinct()
 
     def get_profile_completion_stats(self):
-        """Get statistics about student profile completion"""
         students = self.get_students()
         total_students = students.count()
-        completed_profiles = students.filter(
-            profile_picture__isnull=False,
-            bio__isnull=False,
-            linkedin_url__isnull=False
-        ).count()
+        
+        # Count students with completed profiles (all required fields filled)
+        completed_profiles = 0
+        for student in students:
+            student.calculate_profile_completion()
+            if student.profile_completion >= 80:  # Consider profile complete if 80% or more fields are filled
+                completed_profiles += 1
+        
+        completion_percentage = (completed_profiles / total_students * 100) if total_students > 0 else 0
         
         return {
             'total_students': total_students,
             'completed_profiles': completed_profiles,
-            'completion_percentage': (completed_profiles / total_students * 100) if total_students > 0 else 0
+            'completion_percentage': completion_percentage
         }
 
     def get_resume_stats(self):
