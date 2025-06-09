@@ -37,127 +37,177 @@
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="mb-4">Resume Builder</h1>
-    
-    <form method="post" id="resumeForm">
-        {% csrf_token %}
-        
-        <!-- Template Selection -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Choose Template</h5>
-                <div class="row">
-                    {% for template in templates %}
-                    <div class="col-md-4">
-                        <div class="template-preview" data-template-id="{{ template.id }}">
-                            <h6>{{ template.name }}</h6>
-                            <p class="text-muted">{{ template.description }}</p>
+    <div class="row">
+        <div class="col-md-8">
+            <h1 class="mb-4">Resume Builder</h1>
+            
+            <form method="post" id="resumeForm">
+                {% csrf_token %}
+                
+                <!-- Template Selection -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Choose Template</h5>
+                        <div class="row">
+                            {% for template in templates %}
+                            <div class="col-md-4">
+                                <div class="template-preview" data-template-id="{{ template.id }}">
+                                    <h6>{{ template.name }}</h6>
+                                    <p class="text-muted">{{ template.description }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="template" id="selectedTemplate" required>
+                    </div>
+                </div>
+                
+                <!-- Restore Career Objective field -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="form-group mt-3">
+                            <label for="objective">Career Objective</label>
+                            <textarea class="form-control" id="objective" name="objective" rows="3"></textarea>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
-                <input type="hidden" name="template" id="selectedTemplate" required>
-            </div>
-        </div>
-        
-        <!-- Resume Title -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="title">Resume Title</label>
-                    <input type="text" class="form-control" id="title" name="title" required>
-                </div>
-                <div class="form-group mt-3">
-                    <label for="objective">Career Objective</label>
-                    <textarea class="form-control" id="objective" name="objective" rows="3"></textarea>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Drag & Drop Sections -->
-        <div id="resumeSections">
-            <!-- Personal Info (Non-draggable) -->
-            <div class="resume-section">
-                <div class="section-header">
-                    <h5>Personal Information</h5>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
-                        <p><strong>Email:</strong> {{ student.user.email }}</p>
-                        <p><strong>Phone:</strong> {{ student.phone_number }}</p>
+                
+                <!-- Drag & Drop Sections -->
+                <div id="resumeSections">
+                    <!-- Personal Info (Non-draggable) -->
+                    <div class="resume-section">
+                        <div class="section-header">
+                            <h5>Personal Information</h5>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
+                                <p><strong>Email:</strong> {{ student.user.email }}</p>
+                                <p><strong>Phone:</strong> {{ student.phone_number }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>College:</strong> {{ student.college.name }}</p>
+                                <p><strong>Course:</strong> {{ student.course.name }}</p>
+                                <p><strong>Specialization:</strong> {{ student.specialization }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>College:</strong> {{ student.college.name }}</p>
-                        <p><strong>Course:</strong> {{ student.course.name }}</p>
-                        <p><strong>Specialization:</strong> {{ student.specialization }}</p>
+                    
+                    <!-- Skills -->
+                    <div class="resume-section" data-section="skills">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Skills</h5>
+                            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+                        </div>
+                        <div class="form-group">
+                            {% for skill in skills %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="skills" id="skill_{{ skill.id }}" value="{{ skill.id }}">
+                                <label class="form-check-label" for="skill_{{ skill.id }}">{{ skill.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Academic/Education Summary (editable) -->
+                    <div class="resume-section" data-section="education">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Education</h5>
+                            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="education_college">College</label>
+                            <input type="text" class="form-control" id="education_college" name="education_college" value="{{ student.college.name }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="education_course">Course</label>
+                            <input type="text" class="form-control" id="education_course" name="education_course" value="{{ student.course.name }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="education_graduation">Expected Graduation</label>
+                            <input type="text" class="form-control" id="education_graduation" name="education_graduation" value="{{ student.expected_graduation_year|default:'-' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="education_cgpa">CGPA</label>
+                            <input type="text" class="form-control" id="education_cgpa" name="education_cgpa" value="{{ cgpa|default:'-' }}">
+                        </div>
+                    </div>
+                    
+                    <!-- Projects -->
+                    <div class="resume-section" data-section="projects">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Projects</h5>
+                            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+                        </div>
+                        <div class="form-group">
+                            {% for project in projects %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="projects" id="project_{{ project.id }}" value="{{ project.id }}">
+                                <label class="form-check-label" for="project_{{ project.id }}">{{ project.title }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Contests & Achievements -->
+                    <div class="resume-section" data-section="contests">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Contests & Achievements</h5>
+                            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+                        </div>
+                        <div class="form-group">
+                            {% for contest in contests %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="contests" id="contest_{{ contest.id }}" value="{{ contest.id }}">
+                                <label class="form-check-label" for="contest_{{ contest.id }}">{{ contest.event_name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Extra-Curricular Activities -->
+                    <div class="resume-section" data-section="extracurricular">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Extra-Curricular Activities</h5>
+                            <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+                        </div>
+                        <div class="form-group" id="extracurricular-list">
+                            <!-- Achievements will be added here -->
+                            <label>Achievements</label>
+                            <div class="extracurricular-item mb-2">
+                                <input type="text" class="form-control mb-2" name="extracurricular_points" placeholder="Achievement">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" id="addAchievementBtn">+ Add Achievement</button>
+                    </div>
+                </div>
+                <!-- Add Section Button -->
+                <div class="text-end mt-2">
+                    <button type="button" class="btn btn-success" id="addSectionBtn">+ Add Section</button>
+                </div>
+                <input type="hidden" name="section_order" id="sectionOrder">
+            </form>
+            <div class="mt-3">
+                <!-- Save Version button removed -->
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">Live Resume Preview</h4>
+                    <div id="resumeLivePreview" class="border p-3" style="min-height: 400px; background: #fff;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-file-alt fa-3x mb-3"></i>
+                            <p>Select a template and customize your resume to see the preview.</p>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button id="downloadResumePDF" class="btn btn-primary w-100" disabled>Download PDF</button>
                     </div>
                 </div>
             </div>
-            
-            <!-- Skills -->
-            <div class="resume-section" data-section="skills">
-                <div class="section-header">
-                    <h5>Skills</h5>
-                </div>
-                <div class="form-group">
-                    <select class="form-control" name="skills" multiple>
-                        {% for skill in skills %}
-                        <option value="{{ skill.id }}">{{ skill.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Academic Records -->
-            <div class="resume-section" data-section="academic">
-                <div class="section-header">
-                    <h5>Academic Records</h5>
-                </div>
-                <div class="form-group">
-                    <select class="form-control" name="academic_records" multiple>
-                        {% for record in academic_records %}
-                        <option value="{{ record.id }}">
-                            {{ record.subject_name }} (Sem {{ record.semester }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Projects -->
-            <div class="resume-section" data-section="projects">
-                <div class="section-header">
-                    <h5>Projects</h5>
-                </div>
-                <div class="form-group">
-                    <select class="form-control" name="projects" multiple>
-                        {% for project in projects %}
-                        <option value="{{ project.id }}">{{ project.title }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Contests -->
-            <div class="resume-section" data-section="contests">
-                <div class="section-header">
-                    <h5>Contests & Achievements</h5>
-                </div>
-                <div class="form-group">
-                    <select class="form-control" name="contests" multiple>
-                        {% for contest in contests %}
-                        <option value="{{ contest.id }}">{{ contest.event_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
         </div>
-        
-        <div class="text-center mt-4">
-            <button type="submit" class="btn btn-primary btn-lg">Generate Resume</button>
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -168,7 +218,11 @@
     new Sortable(document.getElementById('resumeSections'), {
         animation: 150,
         handle: '.section-header',
-        ghostClass: 'dragging'
+        ghostClass: 'dragging',
+        onEnd: function() {
+            updateSectionOrder();
+            triggerLivePreview();
+        }
     });
     
     // Template selection
@@ -177,6 +231,8 @@
             document.querySelectorAll('.template-preview').forEach(t => t.classList.remove('selected'));
             this.classList.add('selected');
             document.getElementById('selectedTemplate').value = this.dataset.templateId;
+            triggerLivePreview();
+            checkDownloadButton();
         });
     });
     
@@ -185,6 +241,126 @@
         if (!document.getElementById('selectedTemplate').value) {
             e.preventDefault();
             alert('Please select a template');
+        }
+    });
+
+    // Live preview AJAX
+    function triggerLivePreview() {
+        const form = document.getElementById('resumeForm');
+        const formData = new FormData(form);
+        fetch('/resume/live_preview/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('resumeLivePreview').innerHTML = html;
+        });
+    }
+
+    // Listen for changes on all form fields
+    document.getElementById('resumeForm').addEventListener('change', function() {
+        triggerLivePreview();
+        checkDownloadButton();
+    });
+
+    // Enable Download PDF button if template is selected
+    function checkDownloadButton() {
+        const btn = document.getElementById('downloadResumePDF');
+        if (document.getElementById('selectedTemplate').value) {
+            btn.removeAttribute('disabled');
+        } else {
+            btn.setAttribute('disabled', 'disabled');
+        }
+    }
+
+    // Download PDF
+    document.getElementById('downloadResumePDF').addEventListener('click', function(e) {
+        e.preventDefault();
+        const form = document.getElementById('resumeForm');
+        const formData = new FormData(form);
+        fetch('/resume/download_pdf/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'resume.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        });
+    });
+
+    // Update section order hidden input
+    function updateSectionOrder() {
+        const order = Array.from(document.querySelectorAll('#resumeSections .resume-section'))
+            .map(sec => sec.getAttribute('data-section'))
+            .filter(Boolean);
+        document.getElementById('sectionOrder').value = order.join(',');
+    }
+    // Initial order
+    updateSectionOrder();
+
+    // Remove section logic (vanilla JS)
+    document.getElementById('resumeSections').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-section')) {
+            var section = e.target.closest('.resume-section');
+            var sectionName = section.getAttribute('data-section');
+            section.remove();
+            // Remove from sectionOrder
+            var order = document.getElementById('sectionOrder').value.split(',').filter(Boolean);
+            order = order.filter(function(item) { return item !== sectionName; });
+            document.getElementById('sectionOrder').value = order.join(',');
+            triggerLivePreview();
+        }
+    });
+
+    // Add Section logic (vanilla JS)
+    document.getElementById('addSectionBtn').addEventListener('click', function() {
+        var newSectionId = 'custom_' + Date.now();
+        var newSection = document.createElement('div');
+        newSection.className = 'resume-section';
+        newSection.setAttribute('data-section', newSectionId);
+        newSection.innerHTML = `
+            <div class="section-header d-flex justify-content-between align-items-center">
+                <input type="text" class="form-control form-control-sm w-50" name="custom_section_title_${newSectionId}" placeholder="Section Title">
+                <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
+            </div>
+            <div class="form-group mt-2">
+                <textarea class="form-control" name="custom_section_content_${newSectionId}" rows="3" placeholder="Section Content"></textarea>
+            </div>
+        `;
+        document.getElementById('resumeSections').appendChild(newSection);
+        // Add to sectionOrder
+        var order = document.getElementById('sectionOrder').value.split(',').filter(Boolean);
+        order.push(newSectionId);
+        document.getElementById('sectionOrder').value = order.join(',');
+        triggerLivePreview();
+    });
+
+    // Add Achievement logic for Extra-Curricular (vanilla JS)
+    document.getElementById('resumeSections').addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'addAchievementBtn') {
+            var list = document.getElementById('extracurricular-list');
+            var div = document.createElement('div');
+            div.className = 'extracurricular-item mb-2';
+            div.innerHTML = '<input type="text" class="form-control mb-2" name="extracurricular_points" placeholder="Achievement">' +
+                '<button type="button" class="btn btn-sm btn-outline-danger remove-achievement">Remove</button>';
+            list.appendChild(div);
+        }
+        if (e.target && e.target.classList.contains('remove-achievement')) {
+            e.target.closest('.extracurricular-item').remove();
         }
     });
 </script>

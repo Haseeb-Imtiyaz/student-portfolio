@@ -30,8 +30,42 @@
                 <div class="card-body">
                     <h4 class="card-title">Filters</h4>
                     <form method="get" id="filterForm">
-                        {{ filter_form|crispy }}
+                        {% if search_query %}
+                            <input type="hidden" name="search" value="{{ search_query }}">
+                        {% endif %}
+                        <div class="mb-3">
+                            <label for="id_type" class="form-label">Job Type</label>
+                            <select name="type" id="id_type" class="form-select">
+                                <option value="">Any</option>
+                                {% for value, label in filter_form.fields.type.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if value == request.GET.type %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_location" class="form-label">Location</label>
+                            <select name="location" id="id_location" class="form-select">
+                                <option value="">Any</option>
+                                {% for value, label in filter_form.fields.location.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if value == request.GET.location %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_skills" class="form-label">Skills</label>
+                            <input type="text" name="skills" id="id_skills" class="form-control" 
+                                   value="{{ request.GET.skills }}" 
+                                   placeholder="e.g., Python, Java, React">
+                            <small class="form-text text-muted">Enter skills separated by commas</small>
+                        </div>
                         <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                        {% if request.GET.type or request.GET.location or request.GET.skills or search_query %}
+                            <a href="{% url 'job_list' %}" class="btn btn-outline-secondary w-100 mt-2">Clear Filters</a>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -43,7 +77,12 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <form method="get" class="d-flex flex-grow-1 me-3">
-                            <input type="text" name="search" class="form-control me-2" placeholder="Search jobs..." value="{{ request.GET.search }}">
+                            <input type="text" name="search" class="form-control me-2" placeholder="Search jobs..." value="{% if search_query %}{{ search_query }}{% endif %}">
+                            {% for key, value in request.GET.items %}
+                                {% if key != 'search' and key != 'page' %}
+                                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                                {% endif %}
+                            {% endfor %}
                             <button type="submit" class="btn btn-primary">Search</button>
                         </form>
                         {% if is_employer %}

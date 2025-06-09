@@ -47,11 +47,19 @@
                                         <p class="mb-1">
                                             <strong>Year:</strong> {{ record.year_of_completion }}
                                         </p>
-                                        {% if record.report_card %}
-                                            <a href="{{ record.report_card.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                View Report Card
+                                        <div class="btn-group" role="group">
+                                            {% if record.report_card %}
+                                                <a href="{{ record.report_card.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    View Report Card
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'edit_academic_record' record.id %}" class="btn btn-sm btn-outline-secondary">
+                                                Edit
                                             </a>
-                                        {% endif %}
+                                            <a href="{% url 'delete_academic_record' record.id %}" class="btn btn-sm btn-outline-danger">
+                                                Delete
+                                            </a>
+                                        </div>
                                     </div>
                                     {% if not forloop.last %}
                                         <hr>

@@ -46,7 +46,7 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>Name</th>
+                            <th>Username</th>
                             <th>College</th>
                             <th>Designation</th>
                             <th>Contact</th>
@@ -57,7 +57,7 @@
                     <tbody>
                         {% for officer in officers %}
                         <tr>
-                            <td>{{ officer.user.get_full_name }}</td>
+                            <td>{{ officer.user.username }}</td>
                             <td>{{ officer.college.name }}</td>
                             <td>{{ officer.designation }}</td>
                             <td>{{ officer.phone_number }}</td>

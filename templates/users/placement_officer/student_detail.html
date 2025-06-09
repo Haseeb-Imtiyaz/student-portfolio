@@ -129,7 +129,7 @@
                                     <td>{{ application.job.employer.company_name }}</td>
                                     <td>{{ application.applied_date|date:"M d, Y" }}</td>
                                     <td>
-                                        <span class="badge bg-{{ application.status|lower }}">
+                                        <span class="badge {% if application.status == 'hired' %}bg-success{% elif application.status == 'rejected' %}bg-danger{% elif application.status == 'shortlisted' %}bg-info{% elif application.status == 'under_review' %}bg-warning{% else %}bg-secondary{% endif %}">
                                             {{ application.get_status_display }}
                                         </span>
                                     </td>

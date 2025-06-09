@@ -175,12 +175,23 @@ class StudentProfile(models.Model):
         ongoing = projects.filter(start_date__lte=timezone.now(), end_date__gt=timezone.now()).count()
         upcoming = projects.filter(start_date__gt=timezone.now()).count()
         
+        # Get project type distribution
+        by_type = {}
+        for project_type, _ in Project.PROJECT_TYPE_CHOICES:
+            count = projects.filter(project_type=project_type).count()
+            if count > 0:
+                by_type[project_type] = count
+        
+        # Calculate completion rate
+        completion_rate = (completed / total * 100) if total > 0 else 0
+        
         return {
             'total': total,
             'completed': completed,
             'ongoing': ongoing,
             'upcoming': upcoming,
-            'completion_rate': (completed / total * 100) if total > 0 else 0
+            'completion_rate': round(completion_rate, 1),
+            'by_type': by_type
         }
     
     def get_contest_stats(self):
@@ -191,13 +202,31 @@ class StudentProfile(models.Model):
         wins = contests.filter(outcome='winner').count()
         runner_ups = contests.filter(outcome='runner_up').count()
         
+        # Get category distribution
+        by_category = {
+            'Technical': technical,
+            'Non-Technical': non_technical
+        }
+        
+        # Get outcome distribution
+        by_outcome = {
+            'Winner': wins,
+            'Runner Up': runner_ups,
+            'Participant': total - (wins + runner_ups)
+        }
+        
+        # Calculate success rate
+        success_rate = ((wins + runner_ups) / total * 100) if total > 0 else 0
+        
         return {
             'total': total,
             'technical': technical,
             'non_technical': non_technical,
             'wins': wins,
             'runner_ups': runner_ups,
-            'success_rate': ((wins + runner_ups) / total * 100) if total > 0 else 0
+            'success_rate': round(success_rate, 1),
+            'by_category': by_category,
+            'by_outcome': by_outcome
         }
     
     def get_job_stats(self):

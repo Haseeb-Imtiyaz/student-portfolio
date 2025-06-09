@@ -43,10 +43,13 @@ urlpatterns = [
     
     # Academic Records URLs
     path('academic-records/', views.academic_records, name='academic_records'),
+    path('academic-records/<int:record_id>/edit/', views.edit_academic_record, name='edit_academic_record'),
+    path('academic-records/<int:record_id>/delete/', views.delete_academic_record, name='delete_academic_record'),
     
     # Project URLs
     path('projects/', views.projects, name='projects'),
     path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
+    path('projects/<int:project_id>/edit/', views.edit_project, name='edit_project'),
     path('projects/<int:project_id>/add-file/', views.add_project_file, name='add_project_file'),
     path('projects/<int:project_id>/delete/', views.delete_project, name='delete_project'),
     path('projects/<int:project_id>/files/<int:file_id>/delete/', views.delete_project_file, name='delete_project_file'),
@@ -72,13 +75,14 @@ urlpatterns = [
     path('applications/<int:application_id>/update-status/', views.update_application_status, name='update_application_status'),
     
     # Resume URLs
-    path('resume/templates/', views.resume_templates, name='resume_templates'),
     path('resume/generate/', views.generate_resume, name='generate_resume'),
     path('resume/generate/<int:template_id>/', views.generate_resume, name='generate_resume_with_template'),
     path('resume/download/', views.download_resume, name='download_resume'),
     path('resume/builder/', views.resume_builder, name='resume_builder'),
     path('resume/preview/<int:resume_id>/', views.resume_preview, name='resume_preview'),
     path('resume/download/<int:resume_id>/', views.download_resume, name='download_resume'),
+    path('resume/live_preview/', views.resume_live_preview, name='resume_live_preview'),
+    path('resume/download_pdf/', views.resume_download_pdf, name='resume_download_pdf'),
     
     # Notification URLs
     path('notifications/', views.notifications, name='notifications'),

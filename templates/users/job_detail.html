@@ -36,7 +36,11 @@
                     {% if job.skills_required %}
                         <div class="mb-4">
                             <h5>Required Skills</h5>
-                            <p>{{ job.skills_required }}</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for skill in job.skills_required.all %}
+                                    <span class="badge bg-primary">{{ skill.name }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
                     {% endif %}
                     

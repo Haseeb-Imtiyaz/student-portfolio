@@ -80,10 +80,24 @@
                 <div class="card-body">
                     <h4 class="card-title">Contest Statistics</h4>
                     <div class="mb-3">
-                        <h6>Total Contests</h6>
-                        <div class="progress">
-                            <div class="progress-bar" role="progressbar" style="width: {{ contest_stats.percentage }}%">
-                                {{ contest_stats.total }}
+                        <h6>Success Rate</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ contest_stats.success_rate }}%">
+                                {{ contest_stats.success_rate }}% Success
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h5>{{ contest_stats.wins }}</h5>
+                                <small class="text-muted">Wins</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>{{ contest_stats.runner_ups }}</h5>
+                                <small class="text-muted">Runner Ups</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>{{ contest_stats.total }}</h5>
+                                <small class="text-muted">Total</small>
                             </div>
                         </div>
                     </div>
@@ -104,7 +118,9 @@
                             {% for outcome, count in contest_stats.by_outcome.items %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     {{ outcome }}
-                                    <span class="badge bg-{{ outcome|lower }} rounded-pill">{{ count }}</span>
+                                    <span class="badge {% if outcome == 'Winner' %}bg-success{% elif outcome == 'Runner Up' %}bg-info{% else %}bg-secondary{% endif %} rounded-pill">
+                                        {{ count }}
+                                    </span>
                                 </li>
                             {% endfor %}
                         </ul>
