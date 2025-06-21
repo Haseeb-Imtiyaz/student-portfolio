@@ -67,23 +67,41 @@
                 <div class="card-body">
                     <h4 class="card-title">Project Statistics</h4>
                     <div class="mb-3">
-                        <h6>Total Projects</h6>
-                        <div class="progress">
-                            <div class="progress-bar" role="progressbar" style="width: {{ project_stats.percentage }}%">
-                                {{ project_stats.total }}
+                        <h6>Project Status</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ project_stats.completion_rate }}%">
+                                {{ project_stats.completion_rate }}% Complete
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <h5>{{ project_stats.completed }}</h5>
+                                <small class="text-muted">Completed</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>{{ project_stats.ongoing }}</h5>
+                                <small class="text-muted">Ongoing</small>
+                            </div>
+                            <div class="col-4">
+                                <h5>{{ project_stats.upcoming }}</h5>
+                                <small class="text-muted">Upcoming</small>
                             </div>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <h6>By Type</h6>
+                        <h6>Project Types</h6>
                         <ul class="list-group">
                             {% for type, count in project_stats.by_type.items %}
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {{ type }}
+                                    {{ type|title }}
                                     <span class="badge bg-primary rounded-pill">{{ count }}</span>
                                 </li>
                             {% endfor %}
                         </ul>
+                    </div>
+                    <div class="text-center">
+                        <h6>Total Projects</h6>
+                        <h2 class="display-4">{{ project_stats.total }}</h2>
                     </div>
                 </div>
             </div>

@@ -33,46 +33,25 @@
         <div>{{ resume.objective }}</div>
         {% endif %}
     </div>
-    <div class="section">
-        <div class="section-title">Skills</div>
-        <div class="skills-list">
-            {% for skill in skills %}
-            <span class="skill-item">{{ skill }}</span>
+    {% for section in section_order %}
+        {% if section == 'skills' %}
+            <div class="section"><div class="section-title">Skills</div><div class="skills-list">{% for skill in skills %}<span class="skill-item">{{ skill.name }}</span>{% endfor %}</div></div>
+        {% elif section == 'education' %}
+            <div class="section"><div class="section-title">Education</div><div class="education-info"><strong>{{ education_college|default:student.college.name }}</strong><br>{{ education_course|default:student.course.name }}<br>Expected Graduation: {{ education_graduation|default:student.expected_graduation_year|default:'-' }}<br>CGPA: {{ education_cgpa|default:cgpa|default:'-'|floatformat:2 }}</div></div>
+        {% elif section == 'projects' %}
+            <div class="section"><div class="section-title">Projects</div>{% for project in projects %}<div class="project-item"><strong>{{ project.title }}</strong> - {{ project.role }}<br><span class="date">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</span><br>{{ project.description }}<br><em>Tech:</em> {{ project.technologies }}<br>{% if project.project_url %}URL: {{ project.project_url }}{% endif %}</div>{% endfor %}</div>
+        {% elif section == 'contests' %}
+            {% if contests and contests|length > 0 %}<div class="section"><div class="section-title">Contests & Achievements</div>{% for contest in contests %}<div class="contest-item"><strong>{{ contest.event_name }}</strong> ({{ contest.get_category_display }})<br>{{ contest.organized_by }} | {{ contest.get_outcome_display }}<br><span class="date">{{ contest.date_of_participation|date:"M Y" }}</span></div>{% endfor %}</div>{% endif %}
+        {% elif section == 'extracurricular' %}
+            {% if extracurricular_points %}<div class="section"><div class="section-title">Extra-Curricular Activities</div><div>{% for point in extracurricular_points %}{{ point }}<br>{% endfor %}</div></div>{% endif %}
+        {% else %}
+            {# Custom section #}
+            {% for custom in custom_sections %}
+                {% if custom.id == section %}
+                    <div class="section"><div class="section-title">{{ custom.title }}</div><div>{{ custom.content }}</div></div>
+                {% endif %}
             {% endfor %}
-        </div>
-    </div>
-    <div class="section">
-        <div class="section-title">Education</div>
-        <div class="education-info">
-            <strong>{{ student.college.name }}</strong><br>
-            {{ student.course.name }}<br>
-            Expected Graduation: {{ student.expected_graduation_year }}<br>
-            CGPA: {{ cgpa|floatformat:2 }}
-        </div>
-    </div>
-    <div class="section">
-        <div class="section-title">Projects</div>
-        {% for project in projects %}
-        <div class="project-item">
-            <strong>{{ project.title }}</strong> - {{ project.role }}<br>
-            <span class="date">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</span><br>
-            {{ project.description }}<br>
-            <em>Tech:</em> {{ project.technologies }}<br>
-            {% if project.project_url %}URL: {{ project.project_url }}{% endif %}
-        </div>
-        {% endfor %}
-    </div>
-    {% if contests and contests|length > 0 %}
-    <div class="section">
-        <div class="section-title">Contests & Achievements</div>
-        {% for contest in contests %}
-        <div class="contest-item">
-            <strong>{{ contest.event_name }}</strong> ({{ contest.get_category_display }})<br>
-            {{ contest.organized_by }} | {{ contest.get_outcome_display }}<br>
-            <span class="date">{{ contest.date_of_participation|date:"M Y" }}</span>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
+        {% endif %}
+    {% endfor %}
 </body>
 </html> 

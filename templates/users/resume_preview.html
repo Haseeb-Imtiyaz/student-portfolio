@@ -45,54 +45,28 @@
                 </div>
                 {% endif %}
 
-                <div class="section">
-                    <h2 class="section-title">Skills</h2>
-                    <div class="skills-list">
-                        {% for skill in skills %}
-                        <span class="skill-item">{{ skill.name }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Academic Records</h2>
-                    {% for record in academic_records %}
-                    <div class="academic-item">
-                        <h4>{{ record.subject_name }}</h4>
-                        <p>Semester {{ record.semester }} | {{ record.institution }}</p>
-                        <p>Marks: {{ record.marks_obtained }}/{{ record.max_marks }} | Year: {{ record.year_of_completion }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Projects</h2>
-                    {% for project in projects %}
-                    <div class="project-item">
-                        <h4>{{ project.title }}</h4>
-                        <p>{{ project.description }}</p>
-                        <p>Technologies: {{ project.technologies }}</p>
-                        <p>Role: {{ project.role }} | Team Size: {{ project.team_size }}</p>
-                        <p class="date">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</p>
-                        {% if project.project_url %}
-                        <p>Project URL: {{ project.project_url }}</p>
+                {% for section in section_order|default:'skills,education,projects,contests,extracurricular'|split:',' %}
+                    {% if section == 'skills' %}
+                        <div class="section"><h2 class="section-title">Skills</h2><div class="skills-list">{% for skill in skills %}<span class="skill-item">{{ skill.name }}</span>{% endfor %}</div></div>
+                    {% elif section == 'education' %}
+                        <div class="section"><h2 class="section-title">Education</h2><div class="education-info"><strong>{{ education_college|default:student.college.name }}</strong><br>{{ education_course|default:student.course.name }}<br>Expected Graduation: {{ education_graduation|default:student.expected_graduation_year|default:'-' }}<br>CGPA: {{ education_cgpa|default:cgpa|default:'-'|floatformat:2 }}</div></div>
+                    {% elif section == 'projects' %}
+                        <div class="section"><h2 class="section-title">Projects</h2>{% for project in projects %}<div class="project-item"><h4>{{ project.title }}</h4><p>{{ project.description }}</p><p>Technologies: {{ project.technologies }}</p><p>Role: {{ project.role }} | Team Size: {{ project.team_size }}</p><p class="date">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</p>{% if project.project_url %}<p>Project URL: {{ project.project_url }}</p>{% endif %}</div>{% endfor %}</div>
+                    {% elif section == 'contests' %}
+                        <div class="section"><h2 class="section-title">Contests & Achievements</h2>{% for contest in contests %}<div class="contest-item"><h4>{{ contest.event_name }}</h4><p>Organized by: {{ contest.organized_by }}</p><p>Category: {{ contest.get_category_display }}</p><p>Outcome: {{ contest.get_outcome_display }}</p><p class="date">{{ contest.date_of_participation|date:"M Y" }}</p></div>{% endfor %}</div>
+                    {% elif section == 'extracurricular' %}
+                        {% if extracurricular_points %}
+                        <div class="section"><h2 class="section-title">Extra-Curricular Activities</h2><ul>{% for point in extracurricular_points %}<li>{{ point }}</li>{% endfor %}</ul></div>
                         {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Contests & Achievements</h2>
-                    {% for contest in contests %}
-                    <div class="contest-item">
-                        <h4>{{ contest.event_name }}</h4>
-                        <p>Organized by: {{ contest.organized_by }}</p>
-                        <p>Category: {{ contest.get_category_display }}</p>
-                        <p>Outcome: {{ contest.get_outcome_display }}</p>
-                        <p class="date">{{ contest.date_of_participation|date:"M Y" }}</p>
-                    </div>
-                    {% endfor %}
-                </div>
+                    {% else %}
+                        {# Custom section #}
+                        {% for custom in custom_sections %}
+                            {% if custom.id == section %}
+                                <div class="section"><h2 class="section-title">{{ custom.title }}</h2><div>{{ custom.content }}</div></div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
     </div>

@@ -42,12 +42,13 @@
                         <dt class="col-sm-4">Location</dt>
                         <dd class="col-sm-8">{{ employer.location }}</dd>
 
-                        <dt class="col-sm-4">Company Size</dt>
-                        <dd class="col-sm-8">{{ employer.get_company_size_display }}</dd>
-
                         <dt class="col-sm-4">Website</dt>
                         <dd class="col-sm-8">
-                            <a href="{{ employer.website }}" target="_blank">{{ employer.website }}</a>
+                            {% if employer.company_website %}
+                                <a href="{{ employer.company_website }}" target="_blank">{{ employer.company_website }}</a>
+                            {% else %}
+                                Not specified
+                            {% endif %}
                         </dd>
                     </dl>
                 </div>
@@ -59,13 +60,17 @@
                         <dt class="col-sm-4">Email</dt>
                         <dd class="col-sm-8">{{ employer.user.email }}</dd>
 
-                        <dt class="col-sm-4">Phone</dt>
-                        <dd class="col-sm-8">{{ employer.phone_number }}</dd>
+                        <dt class="col-sm-4">Email Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge {% if employer.user.is_email_verified %}bg-success{% else %}bg-warning{% endif %}">
+                                {{ employer.user.is_email_verified|yesno:"Email Verified,Pending Email Verification" }}
+                            </span>
+                        </dd>
 
-                        <dt class="col-sm-4">Status</dt>
+                        <dt class="col-sm-4">Employer Status</dt>
                         <dd class="col-sm-8">
                             <span class="badge {% if employer.is_verified %}bg-success{% else %}bg-warning{% endif %}">
-                                {{ employer.is_verified|yesno:"Verified,Pending" }}
+                                {{ employer.is_verified|yesno:"Verified,Pending Verification" }}
                             </span>
                         </dd>
 

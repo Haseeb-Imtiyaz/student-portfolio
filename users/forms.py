@@ -2,8 +2,27 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
 from .models import User, StudentProfile, EmployerProfile, AcademicRecord, Project, ProjectFile, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, Announcement
+from django.core.validators import FileExtensionValidator
 
 User = get_user_model()
+
+# File size validator
+def validate_file_size(value):
+    filesize = value.size
+    if filesize > 5 * 1024 * 1024:  # 5MB
+        raise forms.ValidationError("The maximum file size that can be uploaded is 5MB")
+
+# File type validator
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif']
+ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+
+def validate_image_type(value):
+    if value.content_type not in ALLOWED_IMAGE_TYPES:
+        raise forms.ValidationError('File type not supported. Please upload a JPEG, PNG or GIF image.')
+
+def validate_document_type(value):
+    if value.content_type not in ALLOWED_DOCUMENT_TYPES:
+        raise forms.ValidationError('File type not supported. Please upload a PDF or Word document.')
 
 class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -34,7 +53,10 @@ class UserUpdateForm(UserChangeForm):
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=30, required=False)
     bio = forms.CharField(widget=forms.Textarea(attrs={'rows': 4}), required=False)
-    profile_picture = forms.ImageField(required=False)
+    profile_picture = forms.ImageField(
+        required=False,
+        validators=[validate_file_size, validate_image_type]
+    )
     linkedin_url = forms.URLField(required=False)
 
     class Meta:
@@ -54,6 +76,11 @@ class UserUpdateForm(UserChangeForm):
                 self.fields[field].widget.attrs['class'] = 'form-control'
 
 class StudentProfileForm(forms.ModelForm):
+    profile_picture = forms.ImageField(
+        required=False,
+        validators=[validate_file_size, validate_image_type]
+    )
+    
     class Meta:
         model = StudentProfile
         fields = [
@@ -75,6 +102,11 @@ class StudentProfileForm(forms.ModelForm):
                 self.fields[field].required = False
 
 class EmployerProfileForm(forms.ModelForm):
+    company_logo = forms.ImageField(
+        required=False,
+        validators=[validate_file_size, validate_image_type]
+    )
+    
     class Meta:
         model = EmployerProfile
         fields = ['company_name', 'company_website', 'company_description', 
@@ -84,6 +116,11 @@ class EmployerProfileForm(forms.ModelForm):
         }
 
 class AcademicRecordForm(forms.ModelForm):
+    report_card = forms.FileField(
+        required=False,
+        validators=[validate_file_size, validate_document_type]
+    )
+    
     class Meta:
         model = AcademicRecord
         fields = [
@@ -134,6 +171,10 @@ class ProjectForm(forms.ModelForm):
         }
 
 class ProjectFileForm(forms.ModelForm):
+    file = forms.FileField(
+        validators=[validate_file_size]
+    )
+    
     class Meta:
         model = ProjectFile
         fields = ['file', 'file_type', 'description']
@@ -142,6 +183,11 @@ class ProjectFileForm(forms.ModelForm):
         }
 
 class ContestForm(forms.ModelForm):
+    certificate = forms.FileField(
+        required=False,
+        validators=[validate_file_size, validate_document_type]
+    )
+    
     class Meta:
         model = Contest
         fields = [
@@ -154,6 +200,19 @@ class ContestForm(forms.ModelForm):
         }
 
 class JobForm(forms.ModelForm):
+    skills_required = forms.ModelMultipleChoiceField(
+        queryset=Skill.objects.all().order_by('name'),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        help_text='Select all required skills for this position'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure the skills field is properly initialized
+        if self.instance.pk:
+            self.fields['skills_required'].initial = self.instance.skills_required.all()
+
     class Meta:
         model = Job
         fields = [
@@ -192,6 +251,10 @@ class JobForm(forms.ModelForm):
         }
 
 class JobApplicationForm(forms.ModelForm):
+    resume = forms.FileField(
+        validators=[validate_file_size, validate_document_type]
+    )
+    
     class Meta:
         model = JobApplication
         fields = ['resume', 'cover_letter', 'portfolio_url', 'linkedin_url', 'github_url', 'availability_date']
@@ -289,11 +352,12 @@ class NotificationSettingsForm(forms.ModelForm):
 
 class JobFilterForm(forms.Form):
     type = forms.ChoiceField(
-        choices=Job.JOB_TYPE_CHOICES,
+        choices=[('', 'Any')] + list(Job.JOB_TYPE_CHOICES),
         required=False,
         label='Job Type'
     )
-    location = forms.CharField(
+    location = forms.ChoiceField(
+        choices=[('', 'Any')] + list(Job.LOCATION_CHOICES),
         required=False,
         label='Location'
     )
@@ -322,8 +386,9 @@ class JobFilterForm(forms.Form):
     )
     skills = forms.CharField(
         required=False,
-        label='Skills'
-    ) 
+        label='Skills',
+        help_text='Enter skills separated by commas (e.g., Python, Java, React)'
+    )
 
 class PlacementOfficerProfileForm(forms.ModelForm):
     class Meta:
