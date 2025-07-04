@@ -141,8 +141,14 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'haseebtemp2@gmail.com'  # Your Gmail address
+<<<<<<< Updated upstream
 EMAIL_HOST_PASSWORD = 'xvqo rrln ybca zenw'  # Your Gmail app password
 DEFAULT_FROM_EMAIL = 'haseebtemp2@gmail.com'  # Your Gmail address
+=======
+EMAIL_HOST_PASSWORD = 'zdkxkocxbshqcpfe'  # Your Gmail app password
+DEFAULT_FROM_EMAIL = 'haseebtemp2@gmail.com'  # Your Gmail address
+
+>>>>>>> Stashed changes
 
 # Login URLs
 LOGIN_URL = 'login'

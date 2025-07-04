@@ -9,11 +9,29 @@ class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     phone_number = forms.CharField(max_length=15, required=True)
     user_type = forms.ChoiceField(choices=User.USER_TYPE_CHOICES, required=True)
+    secret_key = forms.CharField(max_length=100, required=False, help_text='Required for admin registration.', widget=forms.PasswordInput)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password1', 'password2', 'phone_number', 'user_type']
+        fields = ['username', 'email', 'password1', 'password2', 'phone_number', 'user_type', 'secret_key']
 
+<<<<<<< Updated upstream
+=======
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add help text for admin user type
+        self.fields['user_type'].help_text = 'Select "Admin" to create an administrator account with full system access.'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user_type = cleaned_data.get('user_type')
+        secret_key = cleaned_data.get('secret_key')
+        if user_type == 'admin':
+            if not secret_key or secret_key != 'ADMIN_SECRET_123':
+                self.add_error('secret_key', 'Invalid or missing secret key for admin registration.')
+        return cleaned_data
+
+>>>>>>> Stashed changes
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']

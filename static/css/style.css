@@ -3,6 +3,27 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+<<<<<<< Updated upstream
+=======
+    background-color: #f0f2f5;
+    /* background-image: url('../../static/images/images.jpg'); */
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    z-index: -1;
+>>>>>>> Stashed changes
 }
 
 main {
@@ -120,4 +141,29 @@ footer a:hover {
     .card {
         margin-bottom: 1rem;
     }
+}
+
+/* Home Page Font Size */
+.home-content, .container {
+    font-size: 1.15em;
+}
+.lead {
+    font-size: 1.35em;
+}
+h1, .display-4 {
+    font-size: 2.8em;
+    font-weight: 700;
+}
+h2 {
+    font-size: 2em;
+    font-weight: 600;
+}
+h3 {
+    font-size: 1.5em;
+    font-weight: 600;
+}
+.display-4, .dashboard-stat, .card-text.display-4 {
+    font-size: 3.2rem !important;
+    font-weight: 800 !important;
+    line-height: 1.1;
 } 

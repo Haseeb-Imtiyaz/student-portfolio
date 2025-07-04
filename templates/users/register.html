@@ -19,6 +19,9 @@
                         </div>
                         <div class="col-md-6">
                             {{ form.user_type|as_crispy_field }}
+                            <div id="secret-key-field" style="display:none;">
+                                {{ form.secret_key|as_crispy_field }}
+                            </div>
                             {{ form.password1|as_crispy_field }}
                             {{ form.password2|as_crispy_field }}
                         </div>
@@ -34,4 +37,22 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var userType = document.getElementById('id_user_type');
+        var secretKeyDiv = document.getElementById('secret-key-field');
+        function toggleSecretKey() {
+            if (userType.value === 'admin') {
+                secretKeyDiv.style.display = '';
+            } else {
+                secretKeyDiv.style.display = 'none';
+            }
+        }
+        userType.addEventListener('change', toggleSecretKey);
+        toggleSecretKey();
+    });
+</script>
 {% endblock %} 

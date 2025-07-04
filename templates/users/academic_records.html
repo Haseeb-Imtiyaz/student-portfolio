@@ -12,17 +12,28 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <h2 class="card-title">Academic Records</h2>
-                    
-                    <!-- Add New Record Form -->
+                    <!-- Add Record Button -->
                     <div class="mb-4">
-                        <h4>Add New Semester Record</h4>
-                        <form method="post" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            {{ form|crispy }}
-                            <button type="submit" class="btn btn-primary">Add Record</button>
-                        </form>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">Add New Record</button>
                     </div>
-                    
+                    <!-- Add Record Modal -->
+                    <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addRecordModalLabel">Add New Semester Record</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form method="post" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        {{ form|crispy }}
+                                        <button type="submit" class="btn btn-primary mt-2">Add Record</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Existing Records -->
                     <h4>Your Academic History</h4>
                     {% for semester, semester_records in records.items %}

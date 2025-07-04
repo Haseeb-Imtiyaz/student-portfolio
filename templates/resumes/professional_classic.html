@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ resume.title }}</title>
+    <style>
+        body { font-family: 'Calibri', Arial, sans-serif; color: #333; background: #fff; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 2.2em; color: #2c3e50; }
+        .contact { margin: 10px 0; font-size: 1.1em; }
+        .section { margin-bottom: 20px; }
+        .section-title { color: #2c3e50; border-bottom: 2px solid #eee; margin-bottom: 10px; font-size: 1.2em; }
+        .skills-list { margin: 0; padding: 0; list-style: none; }
+        .skills-list li { display: inline-block; margin-right: 15px; }
+        .project-item, .academic-item, .contest-item { margin-bottom: 15px; }
+        .date { color: #666; font-size: 0.95em; }
+        .education-info { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 220px;">
+            <h1>{{ student.user.get_full_name }}</h1>
+            <div class="contact">
+                {{ student.user.email }} | {{ student.phone_number }}<br>
+                {{ student.college.name }} | {{ student.course.name }}
+            </div>
+        </div>
+        <div style="flex: 1; min-width: 220px; text-align: right;">
+            {% if student.linkedin_url %}<span style="margin-right: 10px;"><strong>LinkedIn:</strong> <a href="{{ student.linkedin_url }}" target="_blank">{{ student.linkedin_url }}</a></span><br>{% endif %}
+            {% if student.github_url %}<span style="margin-right: 10px;"><strong>GitHub:</strong> <a href="{{ student.github_url }}" target="_blank">{{ student.github_url }}</a></span><br>{% endif %}
+            {% if student.portfolio_url %}<span style="margin-right: 10px;"><strong>Portfolio:</strong> <a href="{{ student.portfolio_url }}" target="_blank">{{ student.portfolio_url }}</a></span><br>{% endif %}
+        </div>
+    </div>
+    {% if resume.objective %}
+    <div class="section">
+        <div class="section-title">Objective</div>
+        <div>{{ resume.objective }}</div>
+    </div>
+    {% endif %}
+    {% for section in section_order %}
+        {% if section == 'experience' %}
+            {% if experiences and experiences|length > 0 %}
+                <div class="section">
+                    <div class="section-title" style="font-weight: bold; font-size: 1.3em;">Professional Experience</div>
+                    {% for exp in experiences %}
+                        <div class="project-item">
+                            <strong>{{ exp.title }}</strong> at {{ exp.company }}<br>
+                            <span class="date">{{ exp.start_date|date:"M Y" }} - {{ exp.end_date|date:"M Y" }}</span><br>
+                            {{ exp.description }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% elif section == 'skills' %}
+            <div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">Skills</div><ul class="skills-list">{% for skill in skills %}<li>{{ skill.name }}</li>{% endfor %}</ul></div>
+        {% elif section == 'education' %}
+            <div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">Education</div><div class="education-info"><strong>{{ education_college|default:student.college.name }}</strong><br>{{ education_course|default:student.course.name }}<br>Expected Graduation: {{ education_graduation|default:student.expected_graduation_year|default:'-' }}<br>CGPA: {{ education_cgpa|default:cgpa|default:'-'|floatformat:2 }}</div></div>
+        {% elif section == 'projects' %}
+            <div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">Projects</div>{% for project in projects %}<div class="project-item"><strong>{{ project.title }}</strong> - {{ project.role }}<br><span class="date">{{ project.start_date|date:"M Y" }} - {{ project.end_date|date:"M Y" }}</span><br>{{ project.description }}<br><em>Tech:</em> {{ project.technologies }}<br>{% if project.project_url %}URL: {{ project.project_url }}{% endif %}</div>{% endfor %}</div>
+        {% elif section == 'contests' %}
+            {% if contests and contests|length > 0 %}<div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">Contests & Achievements</div>{% for contest in contests %}<div class="contest-item"><strong>{{ contest.event_name }}</strong> ({{ contest.get_category_display }})<br>{{ contest.organized_by }} | {{ contest.get_outcome_display }}<br><span class="date">{{ contest.date_of_participation|date:"M Y" }}</span></div>{% endfor %}</div>{% endif %}
+        {% elif section == 'extracurricular' %}
+            {% if extracurricular_points %}<div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">Extra-Curricular Activities</div><div>{% for point in extracurricular_points %}{{ point }}<br>{% endfor %}</div></div>{% endif %}
+        {% else %}
+            {# Custom section #}
+            {% for custom in custom_sections %}
+                {% if custom.id == section %}
+                    <div class="section"><div class="section-title" style="font-weight: bold; font-size: 1.3em;">{{ custom.title }}</div><div>{{ custom.content }}</div></div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+</body>
+</html> 
