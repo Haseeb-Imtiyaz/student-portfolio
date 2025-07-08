@@ -4,9 +4,9 @@
 {% block title %}Update Profile - Student Portfolio{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
+<div class="container-fluid mt-5">
+    <div class="row g-4">
+        <div class="col-lg-10 mx-auto">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">Update Profile</h4>
@@ -49,9 +49,6 @@
                                 <div class="col-md-6">
                                     {{ p_form.gender|as_crispy_field }}
                                 </div>
-                                <div class="col-md-6">
-                                    {{ p_form.phone_number|as_crispy_field }}
-                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-12">
@@ -71,10 +68,24 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
-                                    {{ p_form.college|as_crispy_field }}
+                                    <div id="college-field-wrapper">
+                                        {{ p_form.college|as_crispy_field }}
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="college_other_checkbox">
+                                            <label class="form-check-label" for="college_other_checkbox">Other</label>
+                                        </div>
+                                        <input type="text" class="form-control mt-2 d-none" id="college_other_input" name="college_other" placeholder="Enter your college name">
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
-                                    {{ p_form.course|as_crispy_field }}
+                                    <div id="course-field-wrapper">
+                                        {{ p_form.course|as_crispy_field }}
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="course_other_checkbox">
+                                            <label class="form-check-label" for="course_other_checkbox">Other</label>
+                                        </div>
+                                        <input type="text" class="form-control mt-2 d-none" id="course_other_input" name="course_other" placeholder="Enter your course name">
+                                    </div>
                                 </div>
                             </div>
                             <div class="row">
@@ -105,8 +116,40 @@
                                 <div class="col-md-4">
                                     {{ p_form.github_url|as_crispy_field }}
                                 </div>
-                                <div class="col-md-4">
-                                    {{ p_form.portfolio_url|as_crispy_field }}
+                            </div>
+
+                            <!-- 10th & 12th Standard Details -->
+                            <h5 class="mb-3 mt-4">10th & 12th Standard Details</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.tenth_board|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.tenth_school|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.tenth_year|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.tenth_percentage|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.twelfth_board|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.twelfth_school|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ p_form.twelfth_year|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ p_form.twelfth_percentage|as_crispy_field }}
                                 </div>
                             </div>
                         {% elif user.user_type == 'employer' %}
@@ -139,7 +182,14 @@
                         {% elif user.user_type == 'placement_officer' %}
                             <div class="row">
                                 <div class="col-md-6">
-                                    {{ p_form.college|as_crispy_field }}
+                                    <div id="college-field-wrapper-po">
+                                        {{ p_form.college|as_crispy_field }}
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="college_other_checkbox_po">
+                                            <label class="form-check-label" for="college_other_checkbox_po">Other</label>
+                                        </div>
+                                        <input type="text" class="form-control mt-2 d-none" id="college_other_input_po" name="college_other" placeholder="Enter your college name">
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     {{ p_form.designation|as_crispy_field }}
@@ -175,4 +225,62 @@
         </div>
     </div>
 </div>
+{% endblock %} 
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // College Other
+    const collegeOtherCheckbox = document.getElementById('college_other_checkbox');
+    const collegeOtherInput = document.getElementById('college_other_input');
+    const collegeSelect = document.querySelector('#college-field-wrapper select, #college-field-wrapper select.form-control, #college-field-wrapper select.form-select');
+    if (collegeOtherCheckbox && collegeOtherInput && collegeSelect) {
+        collegeOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                collegeOtherInput.classList.remove('d-none');
+                collegeSelect.value = '';
+                collegeSelect.disabled = true;
+            } else {
+                collegeOtherInput.classList.add('d-none');
+                collegeOtherInput.value = '';
+                collegeSelect.disabled = false;
+            }
+        });
+    }
+    // Course Other
+    const courseOtherCheckbox = document.getElementById('course_other_checkbox');
+    const courseOtherInput = document.getElementById('course_other_input');
+    const courseSelect = document.querySelector('#course-field-wrapper select, #course-field-wrapper select.form-control, #course-field-wrapper select.form-select');
+    if (courseOtherCheckbox && courseOtherInput && courseSelect) {
+        courseOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                courseOtherInput.classList.remove('d-none');
+                courseSelect.value = '';
+                courseSelect.disabled = true;
+            } else {
+                courseOtherInput.classList.add('d-none');
+                courseOtherInput.value = '';
+                courseSelect.disabled = false;
+            }
+        });
+    }
+    // Placement Officer College Other
+    const collegeOtherCheckboxPO = document.getElementById('college_other_checkbox_po');
+    const collegeOtherInputPO = document.getElementById('college_other_input_po');
+    const collegeSelectPO = document.querySelector('#college-field-wrapper-po select, #college-field-wrapper-po select.form-control, #college-field-wrapper-po select.form-select');
+    if (collegeOtherCheckboxPO && collegeOtherInputPO && collegeSelectPO) {
+        collegeOtherCheckboxPO.addEventListener('change', function() {
+            if (this.checked) {
+                collegeOtherInputPO.classList.remove('d-none');
+                collegeSelectPO.value = '';
+                collegeSelectPO.disabled = true;
+            } else {
+                collegeOtherInputPO.classList.add('d-none');
+                collegeOtherInputPO.value = '';
+                collegeSelectPO.disabled = false;
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

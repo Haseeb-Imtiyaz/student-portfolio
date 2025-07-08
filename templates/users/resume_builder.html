@@ -36,9 +36,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-md-8">
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
             <h1 class="mb-4">Resume Builder</h1>
             
             <form method="post" id="resumeForm">
@@ -67,10 +67,23 @@
                     <div class="card-body">
                         <div class="form-group mt-3">
                             <label for="objective">Career Objective</label>
-                            <textarea class="form-control" id="objective" name="objective" rows="3"></textarea>
+                            <textarea class="form-control" id="objective" name="objective" rows="3">{{ student.bio|default:'' }}</textarea>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Resume Photo Upload Section -->
+                <div class="resume-section" id="resumePhotoSection">
+                    <div class="section-header">
+                        <h5>Resume Photo</h5>
+                    </div>
+                    <div class="form-group">
+                        <input type="file" class="form-control" name="resume_photo" id="resumePhotoInput" accept="image/*">
+                        <small class="form-text text-muted">This photo will appear on your resume if you choose a template with a photo section.</small>
+                        <div id="resumePhotoPreview" class="mt-2"></div>
+                    </div>
+                </div>
+                <!-- End Resume Photo Upload Section -->
                 
                 <!-- Drag & Drop Sections -->
                 <div id="resumeSections">
@@ -99,13 +112,21 @@
                             <h5>Skills</h5>
                             <button type="button" class="btn btn-sm btn-danger remove-section" title="Remove Section">&times;</button>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="skills-list-group">
                             {% for skill in skills %}
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="skills" id="skill_{{ skill.id }}" value="{{ skill.id }}">
                                 <label class="form-check-label" for="skill_{{ skill.id }}">{{ skill.name }}</label>
                             </div>
                             {% endfor %}
+                            <div class="mt-3">
+                                <label>Add Custom Skills</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="customSkillInput" placeholder="Type a skill and press Enter or +">
+                                    <button type="button" class="btn btn-outline-primary" id="addCustomSkillBtn">+</button>
+                                </div>
+                                <div id="customSkillsContainer"></div>
+                            </div>
                         </div>
                     </div>
                     
@@ -131,6 +152,21 @@
                             <label for="education_cgpa">CGPA</label>
                             <input type="text" class="form-control" id="education_cgpa" name="education_cgpa" value="{{ cgpa|default:'-' }}">
                         </div>
+                        <hr>
+                        <div class="mb-2">
+                            <strong>10th Standard:</strong><br>
+                            <span>Board: {{ student.tenth_board|default:'-' }}</span><br>
+                            <span>School: {{ student.tenth_school|default:'-' }}</span><br>
+                            <span>Year: {{ student.tenth_year|default:'-' }}</span><br>
+                            <span>Percentage: {{ student.tenth_percentage|default:'-' }}</span>
+                        </div>
+                        <div>
+                            <strong>12th Standard:</strong><br>
+                            <span>Board: {{ student.twelfth_board|default:'-' }}</span><br>
+                            <span>School: {{ student.twelfth_school|default:'-' }}</span><br>
+                            <span>Year: {{ student.twelfth_year|default:'-' }}</span><br>
+                            <span>Percentage: {{ student.twelfth_percentage|default:'-' }}</span>
+                        </div>
                     </div>
                     
                     <!-- Projects -->
@@ -148,6 +184,36 @@
                             {% endfor %}
                         </div>
                     </div>
+                    
+                    <!-- Internships Section -->
+                    <div class="resume-section" data-section="internships" id="internshipsSection">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <h5>Internships</h5>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-secondary" id="addInternshipBtn">+ Add Internship</button>
+                                <button type="button" class="btn btn-sm btn-danger ms-2" id="removeInternshipsSection" title="Remove Internships Section">&times;</button>
+                            </div>
+                        </div>
+                        <div id="internshipsList">
+                            {% for internship in internships %}
+                            <div class="internship-item card mb-2 p-2">
+                                <div class="row g-2">
+                                    <div class="col-md-4"><input type="text" class="form-control" name="internships[{{ forloop.counter0 }}][company_name]" placeholder="Company Name" value="{{ internship.company_name }}" required></div>
+                                    <div class="col-md-4"><input type="text" class="form-control" name="internships[{{ forloop.counter0 }}][position]" placeholder="Position" value="{{ internship.position }}" required></div>
+                                    <div class="col-md-2"><input type="date" class="form-control" name="internships[{{ forloop.counter0 }}][start_date]" placeholder="Start Date" value="{{ internship.start_date|date:'Y-m-d' }}" required></div>
+                                    <div class="col-md-2"><input type="date" class="form-control" name="internships[{{ forloop.counter0 }}][end_date]" placeholder="End Date" value="{{ internship.end_date|date:'Y-m-d' }}"></div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-md-4"><input type="text" class="form-control" name="internships[{{ forloop.counter0 }}][location]" placeholder="Location" value="{{ internship.location }}"></div>
+                                    <div class="col-md-4"><input type="text" class="form-control" name="internships[{{ forloop.counter0 }}][technologies]" placeholder="Technologies (comma separated)" value="{{ internship.technologies }}"></div>
+                                    <div class="col-md-3"><textarea class="form-control" name="internships[{{ forloop.counter0 }}][description]" placeholder="Description" rows="2">{{ internship.description }}</textarea></div>
+                                    <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-danger remove-internship">&times;</button></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <!-- End Internships Section -->
                     
                     <!-- Contests & Achievements -->
                     <div class="resume-section" data-section="contests">
@@ -191,7 +257,7 @@
                 <!-- Save Version button removed -->
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Live Resume Preview</h4>
@@ -362,6 +428,92 @@
         if (e.target && e.target.classList.contains('remove-achievement')) {
             e.target.closest('.extracurricular-item').remove();
         }
+    });
+
+    // Internship add/remove logic
+    document.getElementById('addInternshipBtn').addEventListener('click', function() {
+        var list = document.getElementById('internshipsList');
+        var idx = list.children.length;
+        var div = document.createElement('div');
+        div.className = 'internship-item card mb-2 p-2';
+        div.innerHTML = `
+            <div class="row g-2">
+                <div class="col-md-4"><input type="text" class="form-control" name="internships[${idx}][company_name]" placeholder="Company Name" required></div>
+                <div class="col-md-4"><input type="text" class="form-control" name="internships[${idx}][position]" placeholder="Position" required></div>
+                <div class="col-md-2"><input type="date" class="form-control" name="internships[${idx}][start_date]" placeholder="Start Date" required></div>
+                <div class="col-md-2"><input type="date" class="form-control" name="internships[${idx}][end_date]" placeholder="End Date"></div>
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-md-4"><input type="text" class="form-control" name="internships[${idx}][location]" placeholder="Location"></div>
+                <div class="col-md-4"><input type="text" class="form-control" name="internships[${idx}][technologies]" placeholder="Technologies (comma separated)"></div>
+                <div class="col-md-3"><textarea class="form-control" name="internships[${idx}][description]" placeholder="Description" rows="2"></textarea></div>
+                <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-danger remove-internship">&times;</button></div>
+            </div>
+        `;
+        list.appendChild(div);
+        triggerLivePreview();
+    });
+    document.getElementById('internshipsList').addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-internship')) {
+            e.target.closest('.internship-item').remove();
+            triggerLivePreview();
+        }
+    });
+
+    // Remove entire internships section
+    document.getElementById('removeInternshipsSection').addEventListener('click', function() {
+        var section = document.getElementById('internshipsSection');
+        if (section) {
+            section.remove();
+            triggerLivePreview();
+        }
+    });
+
+    // Custom skills logic
+    const customSkillInput = document.getElementById('customSkillInput');
+    const addCustomSkillBtn = document.getElementById('addCustomSkillBtn');
+    const customSkillsContainer = document.getElementById('customSkillsContainer');
+    let customSkillCount = 0;
+    function addCustomSkill(skillName) {
+        if (!skillName) return;
+        // Prevent duplicates
+        const existing = Array.from(document.querySelectorAll('input[name="custom_skills[]"]')).some(input => input.value.toLowerCase() === skillName.toLowerCase());
+        if (existing) return;
+        customSkillCount++;
+        const skillId = `custom_skill_${customSkillCount}`;
+        const div = document.createElement('div');
+        div.className = 'form-check d-flex align-items-center mb-1';
+        div.innerHTML = `
+            <input class="form-check-input me-2" type="checkbox" name="custom_skills[]" id="${skillId}" value="${skillName}" checked>
+            <label class="form-check-label me-2" for="${skillId}">${skillName}</label>
+            <button type="button" class="btn btn-sm btn-link text-danger remove-custom-skill" tabindex="-1">&times;</button>
+        `;
+        customSkillsContainer.appendChild(div);
+        const checkbox = div.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', triggerLivePreview);
+        div.querySelector('.remove-custom-skill').onclick = function() {
+            div.remove();
+            triggerLivePreview();
+        };
+        triggerLivePreview();
+    }
+    if (customSkillInput && addCustomSkillBtn) {
+        addCustomSkillBtn.onclick = function() {
+            addCustomSkill(customSkillInput.value.trim());
+            customSkillInput.value = '';
+            customSkillInput.focus();
+        };
+        customSkillInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomSkill(customSkillInput.value.trim());
+                customSkillInput.value = '';
+            }
+        });
+    }
+    // Also trigger preview when any standard skill is checked/unchecked
+    Array.from(document.querySelectorAll('input[name="skills"]')).forEach(cb => {
+        cb.addEventListener('change', triggerLivePreview);
     });
 </script>
 {% endblock %} 

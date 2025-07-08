@@ -45,6 +45,7 @@ from datetime import timedelta
 from django.contrib.admin.views.decorators import staff_member_required
 from weasyprint import HTML
 from django.views.decorators.csrf import csrf_exempt
+import base64
 
 def register(request):
     if request.method == 'POST':
@@ -93,17 +94,14 @@ def create_student_profile(request):
         if form.is_valid():
             try:
                 profile = form.save(commit=False)
+                # Use cleaned_data for college and course
+                college = form.cleaned_data.get('college')
+                course = form.cleaned_data.get('course')
+                if college:
+                    profile.college = college
+                if course:
+                    profile.course = course
                 profile.user = request.user
-                
-                # Get college and course from POST data
-                college_id = request.POST.get('college')
-                course_id = request.POST.get('course')
-                
-                if college_id:
-                    profile.college = College.objects.get(id=college_id)
-                if course_id:
-                    profile.course = Course.objects.get(id=course_id)
-                
                 profile.save()
                 messages.success(request, 'Your profile has been created successfully!')
                 return redirect('student_dashboard')
@@ -179,18 +177,49 @@ def update_profile(request):
         if request.user.user_type == 'admin':
             if u_form.is_valid():
                 try:
-                    u_form.save()
+                    user = u_form.save()
+                    if p_form:
+                        profile = p_form.save(commit=False)
+                        college = p_form.cleaned_data.get('college')
+                        course = p_form.cleaned_data.get('course')
+                        if college:
+                            profile.college = college
+                        if course:
+                            profile.course = course
+                        # Sync phone number
+                        if hasattr(profile, 'phone_number'):
+                            profile.phone_number = user.phone_number
+                        profile.save()
                     messages.success(request, 'Your profile has been updated!')
-                    return redirect('admin_dashboard')
+                    
+                    # Redirect based on user type
+                    if request.user.user_type == 'student':
+                        return redirect('student_dashboard')
+                    elif request.user.user_type == 'employer':
+                        return redirect('employer_dashboard')
+                    elif request.user.user_type == 'placement_officer':
+                        return redirect('placement_officer_dashboard')
+                    else:
+                        return redirect('home')
                 except Exception as e:
                     messages.error(request, f'An error occurred while updating your profile: {str(e)}')
         else:
             # For other user types, validate both forms
             if u_form.is_valid() and (p_form is None or p_form.is_valid()):
                 try:
-                    u_form.save()
+                    user = u_form.save()
                     if p_form:
-                        p_form.save()
+                        profile = p_form.save(commit=False)
+                        college = p_form.cleaned_data.get('college')
+                        course = p_form.cleaned_data.get('course')
+                        if college:
+                            profile.college = college
+                        if course:
+                            profile.course = course
+                        # Sync phone number
+                        if hasattr(profile, 'phone_number'):
+                            profile.phone_number = user.phone_number
+                        profile.save()
                     messages.success(request, 'Your profile has been updated!')
                     
                     # Redirect based on user type
@@ -1393,6 +1422,9 @@ def create_placement_officer_profile(request):
         if form.is_valid():
             try:
                 profile = form.save(commit=False)
+                college = form.cleaned_data.get('college')
+                if college:
+                    profile.college = college
                 profile.user = request.user
                 profile.save()
                 messages.success(request, 'Your profile has been created successfully!')
@@ -2120,30 +2152,43 @@ def delete_marked_notifications(request):
 def resume_builder(request):
     if not request.user.is_authenticated or request.user.user_type != 'student':
         return redirect('login')
+    try:
+        student = request.user.student_profile
+    except Exception:
+        return redirect('create_student_profile')
     
-    student = request.user.student_profile
     templates = ResumeTemplate.objects.filter(is_active=True)
     skills = Skill.objects.all()
     projects = student.projects.all()
     contests = student.contests.all()
     academic_records = student.academic_records.all()
     cgpa = AcademicRecord.calculate_cgpa(student)
+    internships = student.internships.all()
     
     if request.method == 'POST':
         template_id = request.POST.get('template')
         title = request.POST.get('title')
         objective = request.POST.get('objective')
         selected_skills = request.POST.getlist('skills')
+        custom_skills = request.POST.getlist('custom_skills[]')
         selected_projects = request.POST.getlist('projects')
         selected_contests = request.POST.getlist('contests')
         template = ResumeTemplate.objects.get(id=template_id)
+        resume_photo = request.FILES.get('resume_photo')
         resume = StudentResume.objects.create(
             student=student,
             template=template,
             title=title,
-            objective=objective
+            objective=objective,
+            resume_photo=resume_photo
         )
-        resume.skills.set(selected_skills)
+        # Add custom skills to Skill model if not present
+        custom_skill_objs = []
+        for skill_name in custom_skills:
+            skill, _ = Skill.objects.get_or_create(name=skill_name, defaults={'category': 'other'})
+            custom_skill_objs.append(skill)
+        all_skills = list(Skill.objects.filter(id__in=selected_skills)) + custom_skill_objs
+        resume.skills.set(all_skills)
         resume.selected_projects.set(selected_projects)
         resume.selected_contests.set(selected_contests)
         context = {
@@ -2154,6 +2199,8 @@ def resume_builder(request):
             'contests': resume.selected_contests.all(),
             'academic_records': academic_records,
             'cgpa': cgpa,
+            'resume_photo': resume.resume_photo.url if resume.resume_photo else None,
+            'internships': internships,
         }
         # Use template.template_path directly (no extra 'resumes/' prefix)
         html_string = render_to_string(template.template_path, context)
@@ -2173,6 +2220,7 @@ def resume_builder(request):
         'academic_records': academic_records,
         'cgpa': cgpa,
         'student': student,
+        'internships': internships,
     }
     return render(request, 'users/resume_builder.html', context)
 
@@ -2226,6 +2274,7 @@ def resume_live_preview(request):
     title = request.POST.get('title', '')
     objective = request.POST.get('objective', '')
     selected_skills = request.POST.getlist('skills')
+    custom_skills = request.POST.getlist('custom_skills[]')
     selected_projects = request.POST.getlist('projects')
     selected_contests = request.POST.getlist('contests')
     education_college = request.POST.get('education_college', '')
@@ -2256,11 +2305,42 @@ def resume_live_preview(request):
         template = ResumeTemplate.objects.get(id=template_id)
     except ResumeTemplate.DoesNotExist:
         return HttpResponse('<div class="text-danger">Invalid template selected.</div>')
-    skills = Skill.objects.filter(id__in=selected_skills)
+    skills = list(Skill.objects.filter(id__in=selected_skills)) + [Skill(name=s) for s in custom_skills if s]
     projects = student.projects.filter(id__in=selected_projects)
     contests = student.contests.filter(id__in=selected_contests)
     academic_records = student.academic_records.all()
     cgpa = AcademicRecord.calculate_cgpa(student)
+    resume_photo = request.FILES.get('resume_photo')
+    resume_photo_base64 = None
+    if resume_photo:
+        import base64
+        file_data = resume_photo.read()
+        encoded = base64.b64encode(file_data).decode('utf-8')
+        mime = resume_photo.content_type
+        resume_photo_base64 = f'data:{mime};base64,{encoded}'
+    internships = []
+    i = 0
+    while True:
+        prefix = f'internships[{i}]'
+        company = request.POST.get(f'{prefix}[company_name]')
+        position = request.POST.get(f'{prefix}[position]')
+        start_date = request.POST.get(f'{prefix}[start_date]')
+        end_date = request.POST.get(f'{prefix}[end_date]')
+        location = request.POST.get(f'{prefix}[location]')
+        description = request.POST.get(f'{prefix}[description]')
+        technologies = request.POST.get(f'{prefix}[technologies]')
+        if not company and not position:
+            break
+        internships.append({
+            'company_name': company,
+            'position': position,
+            'start_date': start_date,
+            'end_date': end_date,
+            'location': location,
+            'description': description,
+            'technologies': technologies,
+        })
+        i += 1
     context = {
         'student': student,
         'resume': {'title': title, 'objective': objective},
@@ -2277,6 +2357,8 @@ def resume_live_preview(request):
         'section_order': section_order,
         'custom_sections': custom_sections,
         'extracurricular_points': extracurricular_points,
+        'resume_photo_base64': resume_photo_base64,
+        'internships': internships,
     }
     template_path = template.template_path
     if template_path.startswith('templates/'):
@@ -2300,6 +2382,7 @@ def resume_download_pdf(request):
     title = request.POST.get('title', '')
     objective = request.POST.get('objective', '')
     selected_skills = request.POST.getlist('skills')
+    custom_skills = request.POST.getlist('custom_skills[]')
     selected_projects = request.POST.getlist('projects')
     selected_contests = request.POST.getlist('contests')
     education_college = request.POST.get('education_college', '')
@@ -2330,11 +2413,43 @@ def resume_download_pdf(request):
         template = ResumeTemplate.objects.get(id=template_id)
     except ResumeTemplate.DoesNotExist:
         return HttpResponse('Invalid template selected.', status=400)
-    skills = Skill.objects.filter(id__in=selected_skills)
+    # Only handle resume_photo for Professional Classic
+    resume_photo_base64 = None
+    if template.name.strip().lower() == 'professional classic':
+        resume_photo = request.FILES.get('resume_photo')
+        if resume_photo:
+            file_data = resume_photo.read()
+            encoded = base64.b64encode(file_data).decode('utf-8')
+            mime = resume_photo.content_type
+            resume_photo_base64 = f'data:{mime};base64,{encoded}'
+    skills = list(Skill.objects.filter(id__in=selected_skills)) + [Skill(name=s) for s in custom_skills if s]
     projects = student.projects.filter(id__in=selected_projects)
     contests = student.contests.filter(id__in=selected_contests)
     academic_records = student.academic_records.all()
     cgpa = AcademicRecord.calculate_cgpa(student)
+    internships = []
+    i = 0
+    while True:
+        prefix = f'internships[{i}]'
+        company = request.POST.get(f'{prefix}[company_name]')
+        position = request.POST.get(f'{prefix}[position]')
+        start_date = request.POST.get(f'{prefix}[start_date]')
+        end_date = request.POST.get(f'{prefix}[end_date]')
+        location = request.POST.get(f'{prefix}[location]')
+        description = request.POST.get(f'{prefix}[description]')
+        technologies = request.POST.get(f'{prefix}[technologies]')
+        if not company and not position:
+            break
+        internships.append({
+            'company_name': company,
+            'position': position,
+            'start_date': start_date,
+            'end_date': end_date,
+            'location': location,
+            'description': description,
+            'technologies': technologies,
+        })
+        i += 1
     context = {
         'student': student,
         'resume': {'title': title, 'objective': objective},
@@ -2351,6 +2466,8 @@ def resume_download_pdf(request):
         'section_order': section_order,
         'custom_sections': custom_sections,
         'extracurricular_points': extracurricular_points,
+        'resume_photo_base64': resume_photo_base64,
+        'internships': internships,
     }
     template_path = template.template_path
     if template_path.startswith('templates/'):

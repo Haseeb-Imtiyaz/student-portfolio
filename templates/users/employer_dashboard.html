@@ -4,7 +4,7 @@
 {% block title %}Employer Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-md-12">
             <h2>Employer Dashboard</h2>
@@ -12,7 +12,7 @@
             <!-- Statistics Cards -->
             <div class="row mb-4">
                 <div class="col-md-3">
-                    <div class="card">
+                    <div class="card bg-primary text-white">
                         <div class="card-body">
                             <h5 class="card-title">Total Jobs</h5>
                             <p class="card-text display-4">{{ total_jobs }}</p>
@@ -20,7 +20,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card">
+                    <div class="card bg-success text-white">
                         <div class="card-body">
                             <h5 class="card-title">Active Jobs</h5>
                             <p class="card-text display-4">{{ active_jobs }}</p>
@@ -28,7 +28,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card">
+                    <div class="card bg-info text-white">
                         <div class="card-body">
                             <h5 class="card-title">Total Applications</h5>
                             <p class="card-text display-4">{{ total_applications }}</p>
@@ -36,7 +36,7 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card">
+                    <div class="card bg-warning text-dark">
                         <div class="card-body">
                             <h5 class="card-title">Hired</h5>
                             <p class="card-text display-4">{{ hired_count }}</p>

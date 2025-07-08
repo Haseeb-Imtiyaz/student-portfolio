@@ -4,7 +4,8 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'student_portfolio.settings')
 django.setup()
 
-from users.models import College, Course
+from users.models import College, Course, User, StudentProfile, EmployerProfile
+from django.utils import timezone
 
 def setup_initial_data():
     # Create Colleges
@@ -68,5 +69,82 @@ def setup_initial_data():
         )
         print(f'{"Created" if created else "Already exists"}: {course.name}')
 
+def create_dummy_users():
+    # Get a college and course for students
+    college = College.objects.first()
+    course = Course.objects.first()
+    
+    # Realistic student data
+    students = [
+        {'username': 'alice', 'first_name': 'Alice', 'last_name': 'Johnson', 'email': 'alice.johnson@example.com'},
+        {'username': 'bob', 'first_name': 'Bob', 'last_name': 'Smith', 'email': 'bob.smith@example.com'},
+        {'username': 'charlie', 'first_name': 'Charlie', 'last_name': 'Lee', 'email': 'charlie.lee@example.com'},
+        {'username': 'diana', 'first_name': 'Diana', 'last_name': 'Patel', 'email': 'diana.patel@example.com'},
+        {'username': 'ethan', 'first_name': 'Ethan', 'last_name': 'Brown', 'email': 'ethan.brown@example.com'},
+    ]
+    for s in students:
+        user, created = User.objects.get_or_create(
+            username=s['username'],
+            defaults={
+                'email': s['email'],
+                'user_type': 'student',
+                'is_verified': True,
+                'is_email_verified': True,
+                'first_name': s['first_name'],
+                'last_name': s['last_name'],
+                'date_joined': timezone.now(),
+            }
+        )
+        if created:
+            user.set_password('password@123')
+            user.save()
+            StudentProfile.objects.create(
+                user=user,
+                college=college,
+                course=course,
+                year_of_study=2,
+                semester=3,
+                expected_graduation_year=2026,
+            )
+            print(f'Created student: {s["first_name"]} {s["last_name"]}')
+        else:
+            print(f'Student already exists: {s["first_name"]} {s["last_name"]}')
+
+    # Realistic employer data
+    employers = [
+        {'username': 'techcorp', 'company_name': 'TechCorp', 'email': 'hr@techcorp.com'},
+        {'username': 'healthplus', 'company_name': 'HealthPlus', 'email': 'jobs@healthplus.com'},
+        {'username': 'finwise', 'company_name': 'FinWise', 'email': 'careers@finwise.com'},
+        {'username': 'eduspark', 'company_name': 'EduSpark', 'email': 'hr@eduspark.com'},
+        {'username': 'greenworks', 'company_name': 'GreenWorks', 'email': 'jobs@greenworks.com'},
+    ]
+    for e in employers:
+        user, created = User.objects.get_or_create(
+            username=e['username'],
+            defaults={
+                'email': e['email'],
+                'user_type': 'employer',
+                'is_verified': True,
+                'is_email_verified': True,
+                'date_joined': timezone.now(),
+            }
+        )
+        if created:
+            user.set_password('password@123')
+            user.save()
+            EmployerProfile.objects.create(
+                user=user,
+                company_name=e['company_name'],
+                company_website=f'https://{e["company_name"].lower()}.com',
+                company_description=f'{e["company_name"]} is a leading company in its field.',
+                industry='IT',
+                company_size='50-100',
+                location='City',
+            )
+            print(f'Created employer: {e["company_name"]}')
+        else:
+            print(f'Employer already exists: {e["company_name"]}')
+
 if __name__ == '__main__':
-    setup_initial_data() 
+    setup_initial_data()
+    create_dummy_users() 

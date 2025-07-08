@@ -25,7 +25,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="row">
         <div class="col-md-3">
             <!-- Job List -->
@@ -75,6 +75,7 @@
                                         
                                         <div class="mb-3">
                                             <p class="card-text">
+                                                <strong>Applied For:</strong> {{ application.job.title }} ({{ application.job.job_type|capfirst }})<br>
                                                 <strong>Course:</strong> {{ application.student.course }}<br>
                                                 <strong>College:</strong> {{ application.student.college }}<br>
                                                 <strong>Year of Study:</strong> {{ application.student.year_of_study }}<br>
