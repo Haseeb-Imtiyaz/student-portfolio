@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Placement Officer Profile{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Create Placement Officer Profile</h2>
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_college" class="form-label">College</label>
+                            {{ form.college }}
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="college_other_checkbox">
+                                <label class="form-check-label" for="college_other_checkbox">Other</label>
+                            </div>
+                            <input type="text" class="form-control mt-2 d-none" id="college_other_input" name="college_other" placeholder="Enter your college name">
+                        </div>
+                        {{ form.designation|as_crispy_field }}
+                        {{ form.phone_number|as_crispy_field }}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg mt-3">Create Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // College Other
+    const collegeOtherCheckbox = document.getElementById('college_other_checkbox');
+    const collegeOtherInput = document.getElementById('college_other_input');
+    if (collegeOtherCheckbox && collegeOtherInput) {
+        collegeOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                collegeOtherInput.classList.remove('d-none');
+            } else {
+                collegeOtherInput.classList.add('d-none');
+                collegeOtherInput.value = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

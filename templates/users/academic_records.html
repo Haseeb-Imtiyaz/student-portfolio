@@ -6,78 +6,110 @@
 {% block title %}Academic Records - Student Portfolio{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8">
+<div class="container-fluid mt-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
             <div class="card mb-4">
                 <div class="card-body">
                     <h2 class="card-title">Academic Records</h2>
-                    <!-- Add Record Button -->
+
+                    <!-- 10th & 12th Standard Section -->
                     <div class="mb-4">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRecordModal">Add New Record</button>
+                        <h4>10th & 12th Standard Details</h4>
+                        <table class="table table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Standard</th>
+                                    <th>Board</th>
+                                    <th>School</th>
+                                    <th>Year</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>10th</td>
+                                    <td>{{ request.user.student_profile.tenth_board|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.tenth_school|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.tenth_year|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.tenth_percentage|default:'-' }}</td>
+                                </tr>
+                                <tr>
+                                    <td>12th</td>
+                                    <td>{{ request.user.student_profile.twelfth_board|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.twelfth_school|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.twelfth_year|default:'-' }}</td>
+                                    <td>{{ request.user.student_profile.twelfth_percentage|default:'-' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <a href="{% url 'update_profile' %}" class="btn btn-sm btn-outline-secondary mb-2">Edit 10th/12th Details</a>
                     </div>
-                    <!-- Add Record Modal -->
-                    <div class="modal fade" id="addRecordModal" tabindex="-1" aria-labelledby="addRecordModalLabel" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="addRecordModalLabel">Add New Semester Record</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
+                    <!-- Add New Record Form (Collapsible) -->
+                    <div class="mb-4">
+                        <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addRecordForm">
+                            Add New Record
+                        </button>
+                        <div class="collapse mt-3" id="addRecordForm">
+                            <div class="card card-body">
                                     <form method="post" enctype="multipart/form-data">
                                         {% csrf_token %}
                                         {{ form|crispy }}
-                                        <button type="submit" class="btn btn-primary mt-2">Add Record</button>
+                                    <button type="submit" class="btn btn-success">Save Record</button>
                                     </form>
-                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Existing Records -->
+                    <!-- Existing Records Table -->
+
                     <h4>Your Academic History</h4>
+                    {% if records %}
+                        <table class="table table-striped table-bordered table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Semester</th>
+                                    <th>Subject</th>
+                                    <th>Marks</th>
+                                    <th>Institution</th>
+                                    <th>Year</th>
+                                    <th>GPA</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                     {% for semester, semester_records in records.items %}
-                        <div class="card mb-3">
-                            <div class="card-header">
-                                <h5 class="mb-0">Semester {{ semester }}</h5>
-                                <small class="text-muted">GPA: {{ semester_gpas|get_item:semester }}</small>
-                            </div>
-                            <div class="card-body">
                                 {% for record in semester_records %}
-                                    <div class="mb-3">
-                                        <h6>{{ record.subject_name }}</h6>
-                                        <p class="mb-1">
-                                            <strong>Marks:</strong> {{ record.marks_obtained }}
-                                            {% if record.max_marks %}
-                                                / {{ record.max_marks }}
+                                        <tr>
+                                            {% if forloop.first %}
+                                                <td rowspan="{{ semester_records|length }}">{{ semester }}</td>
                                             {% endif %}
-                                        </p>
-                                        <p class="mb-1">
-                                            <strong>Institution:</strong> {{ record.institution }}
-                                        </p>
-                                        <p class="mb-1">
-                                            <strong>Year:</strong> {{ record.year_of_completion }}
-                                        </p>
-                                        {% if record.report_card %}
-                                            <a href="{{ record.report_card.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                View Report Card
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                    {% if not forloop.last %}
-                                        <hr>
+                                            <td>{{ record.subject_name }}</td>
+                                            <td>{{ record.marks_obtained }}{% if record.max_marks %}/{{ record.max_marks }}{% endif %}</td>
+                                            <td>{{ record.institution }}</td>
+                                            <td>{{ record.year_of_completion }}</td>
+                                            {% if forloop.first %}
+                                                <td rowspan="{{ semester_records|length }}">{{ semester_gpas|get_item:semester }}</td>
+                                            {% endif %}
+                                            <td>
+                                                {% if record.report_card %}
+                                                    <a href="{{ record.report_card.url }}" class="btn btn-sm btn-outline-primary" target="_blank">View</a>
                                     {% endif %}
+                                                <a href="{% url 'edit_academic_record' record.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <a href="{% url 'delete_academic_record' record.id %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
                                 {% endfor %}
-                            </div>
-                        </div>
-                    {% empty %}
+                            </tbody>
+                        </table>
+                    {% else %}
                         <p>No academic records found. Add your first record above.</p>
-                    {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
+        <div class="col-lg-4">
             <div class="card">
                 <div class="card-body">
                     <h4 class="card-title">Academic Performance</h4>

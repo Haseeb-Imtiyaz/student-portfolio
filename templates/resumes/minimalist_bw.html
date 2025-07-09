@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ resume.title }}</title>
+    <style>
+        body { font-family: 'Georgia', serif; color: #111; background: #fff; }
+        .header { border-bottom: 2px solid #111; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 2.2em; }
+        .contact { font-size: 1.1em; margin-bottom: 10px; }
+        .section { margin-bottom: 18px; }
+        .section-title { font-weight: bold; font-size: 1.2em; border-bottom: 1px solid #eee; margin-bottom: 8px; }
+        .skills-list { margin: 0; padding: 0; list-style: none; }
+        .skills-list li { display: inline-block; margin-right: 10px; }
+        .project-item, .academic-item, .contest-item { margin-bottom: 10px; }
+        .date { color: #555; font-size: 0.95em; }
+        .education-info { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ student.user.get_full_name }}</h1>
+        <div class="contact">
+            {{ student.user.email }} | {{ student.phone_number }}<br>
+            {{ student.college.name }} | {{ student.course.name }}<br>
+            {% if student.linkedin_url %}LinkedIn: {{ student.linkedin_url }}<br>{% endif %}
+            {% if student.github_url %}GitHub: {{ student.github_url }}<br>{% endif %}
+        </div>
+    </div>
+    {% if resume.objective or student.bio %}
+    <div class="section">
+        <div class="section-title">Objective</div>
+        <div>{{ resume.objective|default:student.bio }}</div>
+    </div>
+    {% endif %}
+    {% for section in section_order %}
+        {% if section == 'education' %}
+            <div class="section"><div class="section-title">Education</div>
+                <div class="education-info">
+                    <strong>{{ education_college|default:student.college.name }}</strong>
+                    <span style="float:right; font-size:0.95em; color:#555;">{{ education_graduation|default:student.expected_graduation_year|default:'-' }}</span><br>
+                    {{ education_course|default:student.course.name }}<br>
+                    CGPA: {{ education_cgpa|default:cgpa|default:'-'|floatformat:2 }}
+                </div>
+                <div class="education-info" style="margin-top: 8px;">
+                    <strong>{{ student.twelfth_school|default:'-' }}</strong>
+                    <span style="float:right; font-size:0.95em; color:#555;">{{ student.twelfth_year|default:'-' }}</span><br>
+                    Senior Secondary (12<sup>th</sup>) – {{ student.twelfth_board|default:'-' }}<br>
+                    Percentage: {{ student.twelfth_percentage|default:'-' }}
+                </div>
+                <div class="education-info" style="margin-top: 8px;">
+                    <strong>{{ student.tenth_school|default:'-' }}</strong>
+                    <span style="float:right; font-size:0.95em; color:#555;">{{ student.tenth_year|default:'-' }}</span><br>
+                    Secondary School (10<sup>th</sup>) – {{ student.tenth_board|default:'-' }}<br>
+                    Percentage: {{ student.tenth_percentage|default:'-' }}
+                </div>
+                {# After education, add internships #}
+                {% if internships and internships|length > 0 %}
+                <div class="section-title">INTERNSHIPS</div>
+                {% for internship in internships %}
+                <div class="mb-2">
+                    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                        <span><strong>{{ internship.position }}</strong> at <strong>{{ internship.company_name }}</strong></span>
+                        <span style="font-style:italic;">{{ internship.location }}</span>
+                        <span style="margin-left:auto; font-size:0.95em; color:#555;">{{ internship.start_date }}{% if internship.end_date %} - {{ internship.end_date }}{% endif %}</span>
+                    </div>
+                    {% if internship.technologies %}<div style="font-style:italic;">{{ internship.technologies }}</div>{% endif %}
+                    <div>{{ internship.description }}</div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            {% elif section == 'skills' %}
+                <div class="section"><div class="section-title">Skills</div><div>{% for skill in skills %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></div>
+        {% elif section == 'projects' %}
+            <div class="section"><div class="section-title">Projects</div>{% for project in projects %}<div class="project-item"><strong>{{ project.title }}</strong> - {{ project.role }}<br><span class="date" style="float:right; font-size:0.95em; color:#555;">{{ project.start_date|date:"M Y" }}{% if project.end_date %} - {{ project.end_date|date:"M Y" }}{% endif %}</span><br>{{ project.description }}<br><em>Tech:</em> {{ project.technologies }}<br>{% if project.project_url %}URL: {{ project.project_url }}{% endif %}</div>{% endfor %}</div>
+        {% elif section == 'contests' %}
+            {% if contests and contests|length > 0 %}<div class="section"><div class="section-title">Contests & Achievements</div>{% for contest in contests %}<div class="contest-item"><strong>{{ contest.event_name }}</strong> ({{ contest.get_category_display }})<br><span class="date" style="float:right; font-size:0.95em; color:#555;">{{ contest.date_of_participation|date:"M Y" }}</span><br>{{ contest.organized_by }} | {{ contest.get_outcome_display }}</div>{% endfor %}</div>{% endif %}
+        {% elif section == 'extracurricular' %}
+            {% if extracurricular_points %}<div class="section"><div class="section-title">Extra-Curricular Activities</div><div>{% for point in extracurricular_points %}{{ point }}<br>{% endfor %}</div></div>{% endif %}
+        {% else %}
+            {# Custom section #}
+            {% for custom in custom_sections %}
+                {% if custom.id == section %}
+                    <div class="section"><div class="section-title">{{ custom.title }}</div><div>{{ custom.content }}</div></div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+</body>
+</html> 

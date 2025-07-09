@@ -17,27 +17,27 @@
                     </div>
                     <div class="row text-center">
                         <div class="col-md-4 mb-3">
-                            <div class="card dashboard-card shadow-sm h-100">
+                            <div class="card dashboard-card shadow-sm h-100 bg-primary text-white">
                                 <div class="card-body">
-                                    <i class="fas fa-project-diagram fa-2x mb-2 text-primary"></i>
+                                    <i class="fas fa-project-diagram fa-2x mb-2 text-white"></i>
                                     <h5 class="card-title fw-bold">Projects</h5>
                                     <p class="card-text display-4 fw-bold">{{ project_stats.total }}</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <div class="card dashboard-card shadow-sm h-100">
+                            <div class="card dashboard-card shadow-sm h-100 bg-success text-white">
                                 <div class="card-body">
-                                    <i class="fas fa-trophy fa-2x mb-2 text-success"></i>
+                                    <i class="fas fa-trophy fa-2x mb-2 text-white"></i>
                                     <h5 class="card-title fw-bold">Contests</h5>
                                     <p class="card-text display-4 fw-bold">{{ contest_stats.total }}</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <div class="card dashboard-card shadow-sm h-100">
+                            <div class="card dashboard-card shadow-sm h-100 bg-warning text-dark">
                                 <div class="card-body">
-                                    <i class="fas fa-clipboard-list fa-2x mb-2 text-info"></i>
+                                    <i class="fas fa-clipboard-list fa-2x mb-2 text-dark"></i>
                                     <h5 class="card-title fw-bold">Applications</h5>
                                     <p class="card-text display-4 fw-bold">{{ job_stats.total }}</p>
                                 </div>
@@ -67,7 +67,7 @@
                             </a>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <a href="{% url 'resume_templates' %}" class="btn btn-outline-warning w-100">
+                            <a href="{% url 'resume_builder' %}" class="btn btn-outline-warning w-100">
                                 <i class="fas fa-file-alt"></i> Resume Builder
                             </a>
                         </div>

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Placement Officer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Placement Officer Dashboard</h1>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- Profile Completion Stats -->
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Profile Completion</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" role="progressbar" style="width: {{ profile_stats.completion_percentage }}%">
+                            {{ profile_stats.completion_percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                    <p class="card-text">
+                        {{ profile_stats.completed_profiles }} of {{ profile_stats.total_students }} students have completed profiles
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Stats -->
+        <div class="col-md-6">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Job Applications</h5>
+                    <h2 class="display-4">{{ application_stats.total_applications }}</h2>
+                    <p class="card-text">
+                        Average {{ application_stats.average_applications|floatformat:1 }} applications per student
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-flex gap-3">
+                        <a href="{% url 'student_list' %}" class="btn btn-primary">
+                            View All Students
+                        </a>
+                        <a href="{% url 'download_student_report' %}" class="btn btn-success">
+                            Download Student Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Activity</h5>
+                    <div class="list-group">
+                        {% for application in recent_applications %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ application.student.user.get_full_name }}</h6>
+                                <small>{{ application.applied_date|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1">Applied for {{ application.job.title }}</p>
+                            <small>Status: {{ application.get_status_display }}</small>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted">No recent activity</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

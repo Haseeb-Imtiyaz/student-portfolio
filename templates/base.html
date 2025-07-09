@@ -13,8 +13,6 @@
     <!-- Custom CSS -->
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
     
-<<<<<<< Updated upstream
-=======
     <style>
         body {
             background-color: #f0f2f5;
@@ -51,7 +49,6 @@
         }
     </style>
     
->>>>>>> Stashed changes
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -65,7 +62,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if user.is_authenticated %}
-                        {% if user.user_type == 'student' %}
+                        {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                    Admin Panel
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'student_management' %}">Student Management</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'employer_management' %}">Employer Management</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'master_config' %}">Master Configuration</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'communication_panel' %}">Communication Panel</a></li>
+                                </ul>
+                            </li>
+                        {% elif user.user_type == 'student' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'student_dashboard' %}">Dashboard</a>
                             </li>
@@ -85,30 +97,45 @@
                                 <a class="nav-link" href="{% url 'job_list' %}">Jobs</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'resume_templates' %}">Resume</a>
+                                <a class="nav-link" href="{% url 'resume_builder' %}">Resume Builder</a>
                             </li>
                         {% elif user.user_type == 'employer' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'employer_dashboard' %}">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'profile' %}">Profile</a>
+                                <a class="nav-link" href="{% url 'job_create' %}">Post Job</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'employer_job_applications' %}">Applications</a>
+                            </li>
+                        {% elif user.user_type == 'placement_officer' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'placement_officer_dashboard' %}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_list' %}">Students</a>
                             </li>
                         {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'notifications' %}">
+                            <i class="fas fa-bell"></i>
+                            {% if unread_notifications_count > 0 %}
+                                <span class="badge bg-danger">{{ unread_notifications_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i>{{ user.username }}
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            {{ user.get_full_name|default:user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'profile' %}">My Profile</a></li>
-                            <li><a class="dropdown-item" href="{% url 'update_profile' %}">Settings</a></li>
-                            {% if user.user_type == 'student' %}
-                            <li><a class="dropdown-item" href="{% url 'notifications' %}">Notifications</a></li>
-                            {% endif %}
+                            <!-- <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li> -->
+                            <li><a class="dropdown-item" href="{% url 'update_profile' %}">Update Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                         </ul>

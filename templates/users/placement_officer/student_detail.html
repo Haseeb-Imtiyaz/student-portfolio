@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Details - {{ student.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Student Details</h1>
+        <a href="{% url 'student_list' %}" class="btn btn-secondary">
+            Back to List
+        </a>
+    </div>
+
+    <!-- Student Profile -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if student.profile_picture %}
+                    <img src="{{ student.profile_picture.url }}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                    <div class="rounded-circle bg-secondary mb-3 mx-auto" style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user fa-3x text-white"></i>
+                    </div>
+                    {% endif %}
+                    <h3>{{ student.user.get_full_name }}</h3>
+                    <p class="text-muted">{{ student.course.name }} - Semester {{ student.semester }}</p>
+                    <p><strong>Name:</strong> {{ student.user.get_full_name }}</p>
+                    <p><strong>Email:</strong> {{ student.user.email }}</p>
+                    <p><strong>College:</strong> {{ student.college.name }}</p>
+                    <p><strong>Phone:</strong> {{ student.phone_number }}</p>
+                    
+                    <div class="mt-3">
+                        {% if student.linkedin_url %}
+                        <a href="{{ student.linkedin_url }}" target="_blank" class="btn btn-outline-primary me-2">
+                            <i class="fab fa-linkedin"></i> LinkedIn
+                        </a>
+                        {% endif %}
+                        {% if student.github_url %}
+                        <a href="{{ student.github_url }}" target="_blank" class="btn btn-outline-dark">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <!-- Profile Status -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Profile Status</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Profile Picture:</strong> 
+                                {% if student.profile_picture %}
+                                <span class="badge bg-success">Uploaded</span>
+                                {% else %}
+                                <span class="badge bg-warning">Not Uploaded</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Bio:</strong> 
+                                {% if student.bio %}
+                                <span class="badge bg-success">Added</span>
+                                {% else %}
+                                <span class="badge bg-warning">Not Added</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>LinkedIn:</strong> 
+                                {% if student.linkedin_url %}
+                                <span class="badge bg-success">Added</span>
+                                {% else %}
+                                <span class="badge bg-warning">Not Added</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Projects</h5>
+                    {% if projects %}
+                    <div class="list-group">
+                        {% for project in projects %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ project.title }}</h6>
+                            <p class="mb-1">{{ project.description }}</p>
+                            <small>
+                                <span class="badge bg-info">{{ project.get_project_type_display }}</span>
+                                {% if project.project_url %}
+                                <a href="{{ project.project_url }}" target="_blank" class="ms-2">View Project</a>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No projects added yet</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Job Applications -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Job Applications</h5>
+                    {% if applications %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Job Title</th>
+                                    <th>Company</th>
+                                    <th>Applied Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for application in applications %}
+                                <tr>
+                                    <td>{{ application.job.title }}</td>
+                                    <td>{{ application.job.employer.company_name }}</td>
+                                    <td>{{ application.applied_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <span class="badge {% if application.status == 'hired' %}bg-success{% elif application.status == 'rejected' %}bg-danger{% elif application.status == 'shortlisted' %}bg-info{% elif application.status == 'under_review' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                            {{ application.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No job applications yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

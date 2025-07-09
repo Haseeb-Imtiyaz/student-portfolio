@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 import os
+import datetime
+import secrets
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -21,6 +23,13 @@ class User(AbstractUser):
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # Profile fields
+    bio = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
+    linkedin_url = models.URLField(blank=True, null=True)
+    github_url = models.URLField(blank=True, null=True)
+    portfolio_url = models.URLField(blank=True, null=True)
+    
     # Notification preferences
     email_notifications = models.BooleanField(default=True)
     push_notifications = models.BooleanField(default=True)
@@ -34,21 +43,26 @@ class User(AbstractUser):
         default='instant'
     )
 
+    def save(self, *args, **kwargs):
+        # If user type is admin, ensure staff and superuser permissions
+        if self.user_type == 'admin':
+            self.is_staff = True
+            self.is_superuser = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
 
     def generate_email_verification_token(self):
-        import secrets
-        import datetime
         self.email_verification_token = secrets.token_urlsafe(32)
-        self.email_verification_token_created_at = datetime.datetime.now()
+        self.email_verification_token_created_at = timezone.now()
         self.save()
         return self.email_verification_token
 
     def verify_email(self, token):
         if (self.email_verification_token == token and 
             self.email_verification_token_created_at and 
-            (datetime.datetime.now() - self.email_verification_token_created_at).days < 1):
+            (timezone.now() - self.email_verification_token_created_at).days < 1):
             self.is_email_verified = True
             self.email_verification_token = None
             self.email_verification_token_created_at = None
@@ -117,8 +131,19 @@ class StudentProfile(models.Model):
     resume_version = models.IntegerField(default=1)
     resume_last_updated = models.DateTimeField(auto_now=True)
     
+    # 10th and 12th Standard Details
+    tenth_board = models.CharField(max_length=100, blank=True, null=True)
+    tenth_school = models.CharField(max_length=200, blank=True, null=True)
+    tenth_year = models.IntegerField(blank=True, null=True)
+    tenth_percentage = models.DecimalField("10th Percentage", max_digits=5, decimal_places=2, blank=True, null=True)
+
+    twelfth_board = models.CharField(max_length=100, blank=True, null=True)
+    twelfth_school = models.CharField(max_length=200, blank=True, null=True)
+    twelfth_year = models.IntegerField(blank=True, null=True)
+    twelfth_percentage = models.DecimalField("12th Percentage", max_digits=5, decimal_places=2, blank=True, null=True)
+    
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.college.name}"
+        return f"{self.user.get_full_name()} - {self.college.name if self.college else 'No College'}"
     
     def calculate_profile_completion(self):
         total_fields = 15  # Total number of required fields
@@ -161,12 +186,23 @@ class StudentProfile(models.Model):
         ongoing = projects.filter(start_date__lte=timezone.now(), end_date__gt=timezone.now()).count()
         upcoming = projects.filter(start_date__gt=timezone.now()).count()
         
+        # Get project type distribution
+        by_type = {}
+        for project_type, _ in Project.PROJECT_TYPE_CHOICES:
+            count = projects.filter(project_type=project_type).count()
+            if count > 0:
+                by_type[project_type] = count
+        
+        # Calculate completion rate
+        completion_rate = (completed / total * 100) if total > 0 else 0
+        
         return {
             'total': total,
             'completed': completed,
             'ongoing': ongoing,
             'upcoming': upcoming,
-            'completion_rate': (completed / total * 100) if total > 0 else 0
+            'completion_rate': round(completion_rate, 1),
+            'by_type': by_type
         }
     
     def get_contest_stats(self):
@@ -177,13 +213,31 @@ class StudentProfile(models.Model):
         wins = contests.filter(outcome='winner').count()
         runner_ups = contests.filter(outcome='runner_up').count()
         
+        # Get category distribution
+        by_category = {
+            'Technical': technical,
+            'Non-Technical': non_technical
+        }
+        
+        # Get outcome distribution
+        by_outcome = {
+            'Winner': wins,
+            'Runner Up': runner_ups,
+            'Participant': total - (wins + runner_ups)
+        }
+        
+        # Calculate success rate
+        success_rate = ((wins + runner_ups) / total * 100) if total > 0 else 0
+        
         return {
             'total': total,
             'technical': technical,
             'non_technical': non_technical,
             'wins': wins,
             'runner_ups': runner_ups,
-            'success_rate': ((wins + runner_ups) / total * 100) if total > 0 else 0
+            'success_rate': round(success_rate, 1),
+            'by_category': by_category,
+            'by_outcome': by_outcome
         }
     
     def get_job_stats(self):
@@ -330,6 +384,8 @@ class EmployerProfile(models.Model):
     industry = models.CharField(max_length=100, blank=True)
     company_size = models.CharField(max_length=50, blank=True)
     location = models.CharField(max_length=200, blank=True)
+    is_verified = models.BooleanField(default=False)
+    phone_number = models.CharField(max_length=15, blank=True)
 
     def __str__(self):
         return f"{self.company_name} - {self.user.email}"
@@ -338,19 +394,26 @@ class Job(models.Model):
     JOB_TYPE_CHOICES = [
         ('internship', 'Internship'),
         ('full_time', 'Full Time'),
-        ('part_time', 'Part Time'),
         ('contract', 'Contract')
+    ]
+    
+    LOCATION_CHOICES = [
+        ('remote', 'Remote'),
+        ('on_site', 'On-Site'),
+        ('hybrid', 'Hybrid')
     ]
     
     employer = models.ForeignKey(EmployerProfile, on_delete=models.CASCADE, related_name='jobs')
     title = models.CharField(max_length=200)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES)
-    location = models.CharField(max_length=200)
-    experience_required = models.CharField(max_length=100, default='0-1 years')
-    salary_range = models.CharField(max_length=100, default='Not Specified')
+    location = models.CharField(max_length=20, choices=LOCATION_CHOICES)
+    duration = models.CharField(max_length=100, blank=True, null=True)  # For internships
+    stipend_ctc = models.CharField(max_length=100, default='Not specified')
     description = models.TextField()
-    skills_required = models.CharField(max_length=500)
-    eligibility = models.TextField()
+    skills_required = models.ManyToManyField('Skill', related_name='jobs')
+    eligibility_course = models.CharField(max_length=200, default='Any')
+    eligibility_branch = models.CharField(max_length=200, default='Any')
+    eligibility_year = models.CharField(max_length=100, default='Any')
     openings = models.IntegerField(default=1)
     last_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -447,6 +510,27 @@ class ResumeTemplate(models.Model):
     def __str__(self):
         return self.name
 
+class StudentResume(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='resumes')
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.SET_NULL, null=True)
+    title = models.CharField(max_length=100)
+    objective = models.TextField(blank=True)
+    skills = models.ManyToManyField('Skill', related_name='resume_skills')
+    selected_projects = models.ManyToManyField('Project', related_name='resume_projects')
+    selected_contests = models.ManyToManyField('Contest', related_name='resume_contests')
+    selected_academic_records = models.ManyToManyField('AcademicRecord', related_name='resume_academic_records')
+    version = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    pdf_file = models.FileField(upload_to='resumes/pdf/', null=True, blank=True)
+    resume_photo = models.ImageField(upload_to='resumes/photos/', null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.title} (v{self.version})"
+
+    class Meta:
+        ordering = ['-updated_at']
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200)
@@ -477,11 +561,109 @@ class Notification(models.Model):
             self.save()
 
 class PlacementOfficer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='placement_officer')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='placement_officer_profile')
     college = models.ForeignKey(College, on_delete=models.CASCADE, related_name='placement_officers')
     designation = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=15)
     is_approved = models.BooleanField(default=False)
+    is_rejected = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.college.name}"
+
+    def get_students(self):
+        """Get all students from the officer's college"""
+        return StudentProfile.objects.filter(college=self.college)
+
+    def get_students_by_department(self, department):
+        """Get students filtered by department"""
+        return self.get_students().filter(course__name=department)
+
+    def get_students_by_semester(self, semester):
+        """Get students filtered by semester"""
+        return self.get_students().filter(semester=semester)
+
+    def get_students_by_activity(self, min_applications=0):
+        """Get students filtered by minimum number of job applications"""
+        return self.get_students().filter(job_applications__count__gte=min_applications).distinct()
+
+    def get_profile_completion_stats(self):
+        students = self.get_students()
+        total_students = students.count()
+        
+        # Count students with completed profiles (all required fields filled)
+        completed_profiles = 0
+        for student in students:
+            student.calculate_profile_completion()
+            if student.profile_completion >= 80:  # Consider profile complete if 80% or more fields are filled
+                completed_profiles += 1
+        
+        completion_percentage = (completed_profiles / total_students * 100) if total_students > 0 else 0
+        
+        return {
+            'total_students': total_students,
+            'completed_profiles': completed_profiles,
+            'completion_percentage': completion_percentage
+        }
+
+    def get_resume_stats(self):
+        """Get statistics about student resume uploads"""
+        students = self.get_students()
+        total_students = students.count()
+        students_with_resume = students.filter(job_applications__resume__isnull=False).distinct().count()
+        
+        return {
+            'total_students': total_students,
+            'students_with_resume': students_with_resume,
+            'resume_percentage': (students_with_resume / total_students * 100) if total_students > 0 else 0
+        }
+
+    def get_application_stats(self):
+        """Get statistics about student job applications"""
+        students = self.get_students()
+        total_applications = JobApplication.objects.filter(student__in=students).count()
+        total_students = students.count()
+        
+        return {
+            'total_students': total_students,
+            'total_applications': total_applications,
+            'average_applications': total_applications / total_students if total_students > 0 else 0
+        }
+
+    class Meta:
+        ordering = ['-created_at']
+
+class Announcement(models.Model):
+    TARGET_GROUPS = [
+        ('all', 'All Users'),
+        ('students', 'Students Only'),
+        ('employers', 'Employers Only'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    target_group = models.CharField(max_length=20, choices=TARGET_GROUPS)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+class Internship(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='internships')
+    company_name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    location = models.CharField(max_length=200)
+    description = models.TextField()
+    technologies = models.CharField(max_length=500, blank=True)
+
+    def __str__(self):
+        return f"{self.position} at {self.company_name} ({self.student.user.get_full_name()})"

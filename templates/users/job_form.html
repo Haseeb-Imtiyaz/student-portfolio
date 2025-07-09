@@ -1,8 +1,8 @@
-{% extends 'users/base.html' %}
+{% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
@@ -12,7 +12,34 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
-                        {{ form|crispy }}
+                        {% for field in form %}
+                            {% if field.name == 'skills_required' %}
+                                <div class="form-group mb-3">
+                                    <label class="form-label">{{ field.label }}</label>
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    <div class="skills-checkbox-list" id="skills-list-group">
+                                        {{ field }}
+                                        <div class="mt-3">
+                                            <label>Add Custom Skills</label>
+                                            <div class="input-group mb-2">
+                                                <input type="text" class="form-control" id="customSkillInput" placeholder="Type a skill and press Enter or +">
+                                                <button type="button" class="btn btn-outline-primary" id="addCustomSkillBtn">+</button>
+                                            </div>
+                                            <div id="customSkillsContainer"></div>
+                                        </div>
+                                    </div>
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                {{ field|as_crispy_field }}
+                            {% endif %}
+                        {% endfor %}
                         <div class="form-group mt-4">
                             <button type="submit" class="btn btn-primary">Submit</button>
                             <a href="{% url 'employer_dashboard' %}" class="btn btn-secondary">Cancel</a>
@@ -23,4 +50,140 @@
         </div>
     </div>
 </div>
+
+<style>
+    .form-select[multiple] {
+        height: auto !important;
+    }
+    .form-select[multiple] option {
+        padding: 8px;
+        cursor: pointer;
+    }
+    .form-select[multiple] option:hover {
+        background-color: #e9ecef;
+    }
+    .form-select[multiple] option:checked {
+        background-color: #0d6efd !important;
+        color: white;
+    }
+    
+    /* Skills checkbox styling */
+    .skills-checkbox-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .skills-checkbox-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .skills-checkbox-list li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .skills-checkbox-list label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+    }
+    
+    .skills-checkbox-list label:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .skills-checkbox-list input[type="checkbox"] {
+        margin-right: 0.5rem;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const skillsSelect = document.querySelector('select[name="skills_required"]');
+    if (skillsSelect) {
+        // Make the select box taller
+        skillsSelect.style.height = '200px';
+        
+        // Add click handler for options
+        skillsSelect.addEventListener('mousedown', function(e) {
+            if (e.target.tagName === 'OPTION') {
+                e.preventDefault();
+                const option = e.target;
+                option.selected = !option.selected;
+                
+                // Trigger change event
+                const event = new Event('change', { bubbles: true });
+                skillsSelect.dispatchEvent(event);
+            }
+        });
+    }
+    
+    // Add the skills-checkbox-list class to the skills container
+    const skillsContainer = document.querySelector('#id_skills_required').parentElement;
+    if (skillsContainer) {
+        skillsContainer.classList.add('skills-checkbox-list');
+    }
+
+    // Add skills_required other logic
+    const skillsOtherCheckbox = document.getElementById('skills_required_other_checkbox');
+    const skillsOtherInput = document.getElementById('skills_required_other_input');
+    if (skillsOtherCheckbox && skillsOtherInput) {
+        skillsOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                skillsOtherInput.classList.remove('d-none');
+            } else {
+                skillsOtherInput.classList.add('d-none');
+                skillsOtherInput.value = '';
+            }
+        });
+    }
+
+    // Custom skills logic for job form
+    const customSkillInput = document.getElementById('customSkillInput');
+    const addCustomSkillBtn = document.getElementById('addCustomSkillBtn');
+    const customSkillsContainer = document.getElementById('customSkillsContainer');
+    let customSkillCount = 0;
+    function addCustomSkill(skillName) {
+        if (!skillName) return;
+        // Prevent duplicates
+        const existing = Array.from(document.querySelectorAll('input[name="custom_skills[]"]')).some(input => input.value.toLowerCase() === skillName.toLowerCase());
+        if (existing) return;
+        customSkillCount++;
+        const skillId = `custom_skill_${customSkillCount}`;
+        const div = document.createElement('div');
+        div.className = 'form-check d-flex align-items-center mb-1';
+        div.innerHTML = `
+            <input class="form-check-input me-2" type="checkbox" name="custom_skills[]" id="${skillId}" value="${skillName}" checked>
+            <label class="form-check-label me-2" for="${skillId}">${skillName}</label>
+            <button type="button" class="btn btn-sm btn-link text-danger remove-custom-skill" tabindex="-1">&times;</button>
+        `;
+        customSkillsContainer.appendChild(div);
+        div.querySelector('.remove-custom-skill').onclick = function() {
+            div.remove();
+        };
+    }
+    if (customSkillInput && addCustomSkillBtn) {
+        addCustomSkillBtn.onclick = function() {
+            addCustomSkill(customSkillInput.value.trim());
+            customSkillInput.value = '';
+            customSkillInput.focus();
+        };
+        customSkillInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCustomSkill(customSkillInput.value.trim());
+                customSkillInput.value = '';
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 
