@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
-from .models import User, StudentProfile, EmployerProfile, AcademicRecord, Project, ProjectFile, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, Announcement
+from .models import User, StudentProfile, EmployerProfile, AcademicRecord, Project, ProjectFile, Contest, Job, JobApplication, Skill, StudentSkill, ResumeTemplate, Notification, College, Course, PlacementOfficer, Announcement, Internship
 from django.core.validators import FileExtensionValidator
+import datetime
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -28,15 +30,25 @@ class UserRegistrationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     phone_number = forms.CharField(max_length=15, required=True)
     user_type = forms.ChoiceField(choices=User.USER_TYPE_CHOICES, required=True)
+    secret_key = forms.CharField(max_length=100, required=False, help_text='Required for admin registration.', widget=forms.PasswordInput)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password1', 'password2', 'phone_number', 'user_type']
+        fields = ['username', 'email', 'password1', 'password2', 'phone_number', 'user_type', 'secret_key']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add help text for admin user type
         self.fields['user_type'].help_text = 'Select "Admin" to create an administrator account with full system access.'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        user_type = cleaned_data.get('user_type')
+        secret_key = cleaned_data.get('secret_key')
+        if user_type == 'admin':
+            if not secret_key or secret_key != 'ADMIN_SECRET_123':
+                self.add_error('secret_key', 'Invalid or missing secret key for admin registration.')
+        return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -80,6 +92,11 @@ class StudentProfileForm(forms.ModelForm):
         required=False,
         validators=[validate_file_size, validate_image_type]
     )
+
+    # Year choices for 10th and 12th
+    YEAR_CHOICES = [(year, year) for year in range(1990, datetime.datetime.now().year + 1)]
+    tenth_year = forms.ChoiceField(choices=YEAR_CHOICES, required=False)
+    twelfth_year = forms.ChoiceField(choices=YEAR_CHOICES, required=False)
     
     class Meta:
         model = StudentProfile
@@ -87,11 +104,17 @@ class StudentProfileForm(forms.ModelForm):
             'profile_picture', 'date_of_birth', 'gender', 'address', 'city', 
             'state', 'pin_code', 'college', 'course', 'specialization',
             'year_of_study', 'semester', 'expected_graduation_year', 'phone_number',
-            'linkedin_url', 'github_url', 'portfolio_url', 'bio'
+            'linkedin_url', 'github_url', 'portfolio_url', 'bio',
+            'tenth_board', 'tenth_school', 'tenth_year', 'tenth_percentage',
+            'twelfth_board', 'twelfth_school', 'twelfth_year', 'twelfth_percentage',
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
             'bio': forms.Textarea(attrs={'rows': 4}),
+        }
+        labels = {
+            'tenth_percentage': '10th Percentage',
+            'twelfth_percentage': '12th Percentage',
         }
         
     def __init__(self, *args, **kwargs):
@@ -100,6 +123,40 @@ class StudentProfileForm(forms.ModelForm):
         for field in self.fields:
             if field not in ['college', 'course', 'year_of_study']:
                 self.fields[field].required = False
+        # If 'Other' is being used, make the dropdown not required
+        if self.data.get('college_other'):
+            self.fields['college'].required = False
+        if self.data.get('course_other'):
+            self.fields['course'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Clean up tenth_year and twelfth_year
+        if cleaned_data.get('tenth_year') == '':
+            cleaned_data['tenth_year'] = None
+        if cleaned_data.get('twelfth_year') == '':
+            cleaned_data['twelfth_year'] = None
+        college_other = self.data.get('college_other')
+        course_other = self.data.get('course_other')
+        college = cleaned_data.get('college')
+        course = cleaned_data.get('course')
+        # College logic
+        if college_other:
+            college_obj, _ = College.objects.get_or_create(name=college_other, defaults={
+                'location': '', 'website': '', 'contact_email': 'other@example.com', 'contact_phone': '', 'is_active': True
+            })
+            cleaned_data['college'] = college_obj
+        elif not college:
+            raise ValidationError({'college': 'Please select a college or enter a new one.'})
+        # Course logic
+        if course_other:
+            course_obj, _ = Course.objects.get_or_create(name=course_other, defaults={
+                'duration': 4, 'description': '', 'is_active': True
+            })
+            cleaned_data['course'] = course_obj
+        elif not course:
+            raise ValidationError({'course': 'Please select a course or enter a new one.'})
+        return cleaned_data
 
 class EmployerProfileForm(forms.ModelForm):
     company_logo = forms.ImageField(
@@ -212,6 +269,21 @@ class JobForm(forms.ModelForm):
         # Ensure the skills field is properly initialized
         if self.instance.pk:
             self.fields['skills_required'].initial = self.instance.skills_required.all()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        # Handle multiple custom skills
+        custom_skills = self.data.getlist('custom_skills[]')
+        custom_skill_objs = []
+        for skill_name in custom_skills:
+            if skill_name.strip():
+                skill, _ = Skill.objects.get_or_create(name=skill_name.strip(), defaults={'category': 'other'})
+                custom_skill_objs.append(skill)
+        if 'skills_required' in cleaned_data and cleaned_data['skills_required']:
+            cleaned_data['skills_required'] = list(cleaned_data['skills_required']) + custom_skill_objs
+        elif custom_skill_objs:
+            cleaned_data['skills_required'] = custom_skill_objs
+        return cleaned_data
 
     class Meta:
         model = Job
@@ -400,10 +472,35 @@ class PlacementOfficerProfileForm(forms.ModelForm):
             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.data.get('college_other'):
+            self.fields['college'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        college_other = self.data.get('college_other')
+        if college_other:
+            college, _ = College.objects.get_or_create(name=college_other, defaults={
+                'location': '', 'website': '', 'contact_email': 'other@example.com', 'contact_phone': '', 'is_active': True
+            })
+            cleaned_data['college'] = college
+        return cleaned_data
+
 class AnnouncementForm(forms.ModelForm):
     class Meta:
         model = Announcement
         fields = ['title', 'content', 'target_group']
         widgets = {
             'content': forms.Textarea(attrs={'rows': 5}),
+        }
+
+class InternshipForm(forms.ModelForm):
+    class Meta:
+        model = Internship
+        fields = ['company_name', 'position', 'start_date', 'end_date', 'location', 'description', 'technologies']
+        widgets = {
+            'start_date': forms.DateInput(attrs={'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'description': forms.Textarea(attrs={'rows': 3}),
         } 

@@ -131,6 +131,17 @@ class StudentProfile(models.Model):
     resume_version = models.IntegerField(default=1)
     resume_last_updated = models.DateTimeField(auto_now=True)
     
+    # 10th and 12th Standard Details
+    tenth_board = models.CharField(max_length=100, blank=True, null=True)
+    tenth_school = models.CharField(max_length=200, blank=True, null=True)
+    tenth_year = models.IntegerField(blank=True, null=True)
+    tenth_percentage = models.DecimalField("10th Percentage", max_digits=5, decimal_places=2, blank=True, null=True)
+
+    twelfth_board = models.CharField(max_length=100, blank=True, null=True)
+    twelfth_school = models.CharField(max_length=200, blank=True, null=True)
+    twelfth_year = models.IntegerField(blank=True, null=True)
+    twelfth_percentage = models.DecimalField("12th Percentage", max_digits=5, decimal_places=2, blank=True, null=True)
+    
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.college.name if self.college else 'No College'}"
     
@@ -512,6 +523,7 @@ class StudentResume(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     pdf_file = models.FileField(upload_to='resumes/pdf/', null=True, blank=True)
+    resume_photo = models.ImageField(upload_to='resumes/photos/', null=True, blank=True)
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.title} (v{self.version})"
@@ -642,3 +654,16 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+
+class Internship(models.Model):
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='internships')
+    company_name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    location = models.CharField(max_length=200)
+    description = models.TextField()
+    technologies = models.CharField(max_length=500, blank=True)
+
+    def __str__(self):
+        return f"{self.position} at {self.company_name} ({self.student.user.get_full_name()})"

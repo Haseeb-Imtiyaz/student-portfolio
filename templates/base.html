@@ -15,7 +15,8 @@
     
     <style>
         body {
-            background-image: url("{% static 'images/background.jpg' %}");
+            background-color: #f0f2f5;
+            /* background-image: url("{% static 'images/background.jpg' %}"); */
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -60,9 +61,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'home' %}">Home</a>
-                    </li>
                     {% if user.is_authenticated %}
                         {% if user.is_staff %}
                             <li class="nav-item">
@@ -136,8 +134,8 @@
                             {{ user.get_full_name|default:user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
-                            <li><a class="dropdown-item" href="{% url 'update_profile' %}">Settings</a></li>
+                            <!-- <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li> -->
+                            <li><a class="dropdown-item" href="{% url 'update_profile' %}">Update Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                         </ul>
@@ -169,7 +167,9 @@
 
     <!-- Main Content -->
     <main>
-        {% block content %}{% endblock %}
+        <div class="container-fluid">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
     <!-- Footer -->

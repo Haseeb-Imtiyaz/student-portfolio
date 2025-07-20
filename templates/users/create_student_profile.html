@@ -21,6 +21,11 @@
                                         <option value="{{ college.id }}">{{ college.name }}</option>
                                     {% endfor %}
                                 </select>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="college_other_checkbox">
+                                    <label class="form-check-label" for="college_other_checkbox">Other</label>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="college_other_input" name="college_other" placeholder="Enter your college name">
                             </div>
                             <div class="mb-3">
                                 <label for="course" class="form-label">Course</label>
@@ -30,6 +35,11 @@
                                         <option value="{{ course.id }}">{{ course.name }}</option>
                                     {% endfor %}
                                 </select>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="course_other_checkbox">
+                                    <label class="form-check-label" for="course_other_checkbox">Other</label>
+                                </div>
+                                <input type="text" class="form-control mt-2 d-none" id="course_other_input" name="course_other" placeholder="Enter your course name">
                             </div>
                             {{ form.specialization|as_crispy_field }}
                             {{ form.year_of_study|as_crispy_field }}
@@ -38,7 +48,6 @@
                             {{ form.profile_picture|as_crispy_field }}
                             {{ form.linkedin_url|as_crispy_field }}
                             {{ form.github_url|as_crispy_field }}
-                            {{ form.portfolio_url|as_crispy_field }}
                         </div>
                     </div>
                     <div class="row">
@@ -54,4 +63,45 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // College Other
+    const collegeOtherCheckbox = document.getElementById('college_other_checkbox');
+    const collegeOtherInput = document.getElementById('college_other_input');
+    const collegeSelect = document.getElementById('college');
+    if (collegeOtherCheckbox && collegeOtherInput && collegeSelect) {
+        collegeOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                collegeOtherInput.classList.remove('d-none');
+                collegeSelect.value = '';
+                collegeSelect.disabled = true;
+            } else {
+                collegeOtherInput.classList.add('d-none');
+                collegeOtherInput.value = '';
+                collegeSelect.disabled = false;
+            }
+        });
+    }
+    // Course Other
+    const courseOtherCheckbox = document.getElementById('course_other_checkbox');
+    const courseOtherInput = document.getElementById('course_other_input');
+    const courseSelect = document.getElementById('course');
+    if (courseOtherCheckbox && courseOtherInput && courseSelect) {
+        courseOtherCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                courseOtherInput.classList.remove('d-none');
+                courseSelect.value = '';
+                courseSelect.disabled = true;
+            } else {
+                courseOtherInput.classList.add('d-none');
+                courseOtherInput.value = '';
+                courseSelect.disabled = false;
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

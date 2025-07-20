@@ -4,14 +4,14 @@
 {% block title %}Placement Officer Dashboard{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid py-4">
     <h1 class="mb-4">Placement Officer Dashboard</h1>
     
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <!-- Profile Completion Stats -->
         <div class="col-md-6">
-            <div class="card">
+            <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Profile Completion</h5>
                     <div class="progress mb-3">
@@ -28,7 +28,7 @@
 
         <!-- Application Stats -->
         <div class="col-md-6">
-            <div class="card">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Job Applications</h5>
                     <h2 class="display-4">{{ application_stats.total_applications }}</h2>
